@@ -1,0 +1,102 @@
+/* settings.css - SETTINGS control panel + global toggle effects.
+   Namespaced under .app-settings for app content; the body-level rules
+   (.no-crt, .reduce-motion) implement the runtime toggles globally. */
+
+/* ---- global toggle effects -------------------------------------------- */
+/* CRT scanlines off: hide the global overlay (set in reset.css). */
+body.no-crt .crt-overlay { display: none; }
+
+/* Reduced motion opt-in (independent of the OS media query). Kill the
+   long-running gate/desktop animations and window transitions. */
+body.reduce-motion .gate__mark,
+body.reduce-motion .gate__mark::before,
+body.reduce-motion .gate__mark::after,
+body.reduce-motion .gate__enter,
+body.reduce-motion .win,
+body.reduce-motion .win.is-closing {
+  animation: none !important;
+}
+body.reduce-motion .gate__mark::before,
+body.reduce-motion .gate__mark::after { display: none; }
+
+/* ---- app content ------------------------------------------------------ */
+.app-settings .win__body { background: var(--bg-2); }
+
+.settings { display: grid; gap: 18px; font-family: var(--font-mono); }
+
+.settings__group { display: grid; gap: 8px; }
+.settings__h {
+  margin: 0; font-family: var(--font-sys); font-size: 18px;
+  color: var(--accent); letter-spacing: 0.06em; text-transform: lowercase;
+  border-bottom: 1px solid var(--line); padding-bottom: 4px;
+}
+
+.settings__row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 44px;
+}
+.settings__label {
+  font-size: var(--fs-body); color: var(--ink); letter-spacing: 0.04em;
+}
+
+/* toggle switch (win98 bevel + lime knob) */
+.settings__toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: none; border: none; padding: 0; min-height: 44px;
+}
+.settings__toggle-track {
+  position: relative; width: 44px; height: 22px;
+  background: var(--bg); border: 2px solid;
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  display: inline-block;
+}
+.settings__toggle-knob {
+  position: absolute; top: 1px; left: 1px; width: 16px; height: 16px;
+  background: var(--ink-dim);
+  transition: left 0.12s ease, background 0.12s ease;
+}
+.settings__toggle[aria-checked="true"] .settings__toggle-knob {
+  left: 23px; background: var(--accent);
+}
+.settings__toggle-state {
+  font-size: var(--fs-sm); color: var(--ink-dim); letter-spacing: 0.1em;
+  width: 28px; text-align: left;
+}
+.settings__toggle[aria-checked="true"] .settings__toggle-state { color: var(--accent); }
+
+/* accent swatches */
+.settings__swatches {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.settings__swatch {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel); color: var(--ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 8px 10px; min-height: 44px; text-align: left;
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+}
+.settings__swatch.is-active {
+  border-color: var(--accent); outline: 1px solid var(--accent);
+  background: rgba(182,255,60,0.06);
+}
+.settings__swatch:hover { background: rgba(232,230,223,0.06); }
+.settings__dot {
+  width: 18px; height: 18px; flex: none;
+  background: linear-gradient(135deg, var(--a) 0 50%, var(--b) 50% 100%);
+  border: 1px solid var(--line);
+}
+.settings__swatch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* session actions */
+.settings__action {
+  background: var(--chrome); color: var(--chrome-ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  font-family: var(--font-sys); font-size: 18px; letter-spacing: 0.04em;
+  padding: 8px 16px; min-height: 44px; justify-self: start;
+}
+.settings__action:active { border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); }
+.settings__note { margin: 0; font-size: 11px; color: var(--ink-dim); letter-spacing: 0.04em; }
+
+@media (max-width: 640px) {
+  .settings__swatches { grid-template-columns: 1fr; }
+}

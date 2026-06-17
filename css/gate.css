@@ -49,6 +49,68 @@
 .gate__enter:hover { color: var(--bg); background: var(--accent); border-color: var(--accent); }
 .gate.is-leaving { animation: gate-out 0.45s forwards; }
 
+/* ---- fake login panel ------------------------------------------------- */
+.gate__login {
+  display: grid; justify-items: center; gap: 0.5rem;
+  width: min(420px, 100%);
+  margin-top: 0.4rem;
+}
+.gate__line {
+  margin: 0;
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  color: var(--ink-dim); letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.gate__line--greet { color: var(--ink); }
+.gate__line--greet b { color: var(--accent); font-weight: 700; }
+.gate__line--last { color: var(--crt-green); text-shadow: 0 0 6px rgba(43,255,138,0.35); }
+
+.gate__form {
+  display: flex; align-items: stretch; flex-wrap: wrap;
+  gap: 0.5rem; justify-content: center;
+  margin-top: 0.3rem;
+}
+.gate__prompt {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  color: var(--crt-green); letter-spacing: 0.12em;
+}
+.gate__input {
+  background: #000; color: var(--accent);
+  border: 1px solid var(--ink-dim);
+  font-family: var(--font-mono); font-size: var(--fs-body);
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.7rem; min-height: 44px;
+  width: clamp(140px, 40vw, 200px);
+  caret-color: var(--accent);
+}
+.gate__input::placeholder { color: var(--ink-dim); opacity: 0.7; }
+.gate__input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.gate__loginrow { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-top: 0.3rem; }
+
+.gate__switch {
+  background: none; border: 1px solid transparent;
+  color: var(--ink-dim);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 0.6rem 1rem; min-height: 44px;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.gate__switch:hover { color: var(--accent); }
+
+.gate__hint {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--ink-dim); letter-spacing: 0.18em; text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* the login form's own button drops the standalone pulse so it reads as a
+   real submit control sitting next to the input */
+.gate__form .gate__enter { margin-top: 0; animation: none; }
+.gate__loginrow .gate__enter { margin-top: 0; }
+
 /* boot */
 .boot {
   position: fixed; inset: 0; z-index: var(--z-boot);
