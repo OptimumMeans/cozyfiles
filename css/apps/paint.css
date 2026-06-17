@@ -1,0 +1,217 @@
+/* app-paint styles - tiny MS-Paint style canvas. All scoped under .app-paint. */
+
+.app-paint .paint {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: var(--gap);
+  box-sizing: border-box;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+/* toolbar: tools + sizes + save */
+.app-paint .paint__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.app-paint .paint__tools,
+.app-paint .paint__sizes {
+  display: flex;
+  gap: 4px;
+}
+
+/* win98 bevel button (shared by tools + sizes) */
+.app-paint .paint__tool,
+.app-paint .paint__size,
+.app-paint .paint__save {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--chrome-ink);
+  background: var(--chrome);
+  border: 2px solid var(--bevel-light);
+  border-right-color: var(--bevel-dark);
+  border-bottom-color: var(--bevel-dark);
+  padding: 4px 8px;
+  cursor: pointer;
+  min-width: 32px;
+  line-height: 1;
+}
+.app-paint .paint__tool:active,
+.app-paint .paint__size:active,
+.app-paint .paint__save:active {
+  border-color: var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.app-paint .paint__tool.is-active,
+.app-paint .paint__size.is-active {
+  background: var(--bg-2);
+  color: var(--accent);
+  border-color: var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.app-paint .paint__tool--danger { color: var(--accent-2); }
+
+.app-paint .paint__size {
+  min-width: 32px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-paint .paint__size-dot {
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--chrome-ink);
+}
+.app-paint .paint__size.is-active .paint__size-dot { background: var(--accent); }
+
+.app-paint .paint__save {
+  margin-left: auto;
+  color: var(--accent-2);
+  font-weight: bold;
+  letter-spacing: 1px;
+  min-width: 56px;
+}
+
+/* palette */
+.app-paint .paint__palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg);
+  border: 2px solid var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.app-paint .paint__swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  background: var(--sw);
+  border: 2px solid var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.app-paint .paint__swatch.is-active {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+  border-color: var(--ink);
+}
+
+/* drawing stage + canvas */
+.app-paint .paint__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg);
+  border: 2px solid var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+  overflow: hidden;
+}
+.app-paint .paint__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* gallery strip */
+.app-paint .paint__gallery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+.app-paint .paint__gallery-label {
+  color: var(--ink-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.app-paint .paint__strip {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.app-paint .paint__strip-empty {
+  color: var(--ink-dim);
+  font-size: 11px;
+  font-style: italic;
+}
+.app-paint .paint__thumb {
+  position: relative;
+  flex: 0 0 auto;
+}
+.app-paint .paint__thumb img {
+  display: block;
+  width: 48px;
+  height: 40px;
+  object-fit: cover;
+  cursor: pointer;
+  background: var(--bg);
+  border: 2px solid var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.app-paint .paint__thumb img:hover {
+  border-color: var(--accent);
+}
+.app-paint .paint__thumb-del {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  line-height: 1;
+  padding: 0;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  background: var(--accent-2);
+  border: 1px solid var(--bevel-dark);
+  cursor: pointer;
+}
+
+/* Mobile: WM forces a full-screen sheet under 640px. Give every control a
+   comfortable (>=44px) tap target and keep the canvas filling the sheet. */
+@media (max-width: 640px) {
+  .app-paint .paint { gap: 10px; }
+
+  .app-paint .paint__tool,
+  .app-paint .paint__save {
+    min-width: 48px;
+    min-height: 44px;
+    font-size: var(--fs-sys);
+    padding: 6px 10px;
+  }
+  .app-paint .paint__size {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .app-paint .paint__swatch {
+    width: 40px;
+    height: 40px;
+  }
+  .app-paint .paint__thumb img {
+    width: 64px;
+    height: 52px;
+  }
+  .app-paint .paint__thumb-del {
+    width: 26px;
+    height: 26px;
+    font-size: var(--fs-body);
+  }
+}
