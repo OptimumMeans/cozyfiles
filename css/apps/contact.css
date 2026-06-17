@@ -1,52 +1,317 @@
-/* app-contact styles - namespaced under .app-contact */
-.app-contact .cz {
+/* app-contact styles - CONTACT as a retro MAIL client. Namespaced under .app-contact */
+.app-contact .mz {
   font-family: var(--font-body);
   font-size: var(--fs-body);
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
+  height: 100%;
+  min-height: 0;
 }
 
-.app-contact .cz__lead {
+/* ---- toolbar: folder tabs + compose ---- */
+.app-contact .mz__toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.app-contact .mz__tabs { display: flex; gap: 4px; }
+
+.app-contact .mz__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sys);
+  font-size: var(--fs-sys);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  background: var(--panel);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.app-contact .mz__tab[aria-selected="true"] {
+  color: var(--titlebar-ink);
+  background: var(--accent);
+}
+.app-contact .mz__tab:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+
+.app-contact .mz__badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--titlebar-ink);
+  background: var(--accent-2);
+}
+.app-contact .mz__tab[aria-selected="true"] .mz__badge {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.app-contact .mz__compose {
+  margin-left: auto;
+  font-family: var(--font-sys);
+  font-size: var(--fs-sys);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--titlebar-ink);
+  background: var(--crt-green);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 4px 14px;
+  cursor: pointer;
+}
+.app-contact .mz__compose:hover { background: var(--accent); }
+.app-contact .mz__compose:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+
+/* ---- two panes ---- */
+.app-contact .mz__panes {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(160px, 40%) 1fr;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+/* message list */
+.app-contact .mz__list {
+  list-style: none;
   margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 2px solid;
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  background: var(--bg);
+}
+
+.app-contact .mz__item {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: start;
+  gap: 6px;
+  padding: 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+}
+.app-contact .mz__item:hover { background: var(--bg-2); }
+.app-contact .mz__item.is-active { background: var(--panel); }
+
+.app-contact .mz__dot {
+  width: 8px; height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+.app-contact .mz__item.is-unread .mz__dot { background: var(--accent); }
+
+.app-contact .mz__itemmain { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.app-contact .mz__from {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.app-contact .mz__subject {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.app-contact .mz__item.is-unread .mz__from,
+.app-contact .mz__item.is-unread .mz__subject { color: var(--ink); font-weight: bold; }
+.app-contact .mz__item.is-unread .mz__from { color: var(--crt-green); }
+
+.app-contact .mz__date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+.app-contact .mz__empty {
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+/* reading pane */
+.app-contact .mz__read {
+  overflow-y: auto;
+  border: 2px solid;
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  background: var(--bg);
+  padding: 12px;
+}
+
+.app-contact .mz__placeholder {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+/* back affordance: only meaningful on mobile where the reader overlays the list */
+.app-contact .mz__back {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0 0 8px;
+  cursor: pointer;
+}
+
+.app-contact .mz__msghead { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.app-contact .mz__msgsubject {
+  margin: 0 0 4px;
   font-family: var(--font-sys);
   font-size: var(--fs-sys);
   color: var(--accent);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+}
+.app-contact .mz__msgmeta,
+.app-contact .mz__msgdate {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  word-break: break-all;
+}
+.app-contact .mz__msgbody {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.app-contact .mz__msgfoot { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.app-contact .mz__reply {
+  font-family: var(--font-sys);
+  font-size: 18px;
+  letter-spacing: 0.05em;
+  color: var(--titlebar-ink);
+  background: var(--accent);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 4px 14px;
+  cursor: pointer;
+}
+.app-contact .mz__reply:hover { background: var(--crt-green); }
+.app-contact .mz__reply:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
 
-.app-contact .cz__block { display: flex; flex-direction: column; gap: 6px; }
+/* ---- compose form (lives in the reading pane) ---- */
+.app-contact .mz__form { display: flex; flex-direction: column; gap: 8px; }
+.app-contact .mz__formhead {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  word-break: break-all;
+}
+.app-contact .mz__field { display: flex; flex-direction: column; gap: 3px; }
+.app-contact .mz__field > span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+.app-contact .mz__field input,
+.app-contact .mz__field textarea {
+  font-family: var(--font-mono);
+  /* 16px floor stops mobile zoom-jump on focus */
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--bg-2);
+  border: 2px solid;
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  padding: 6px 8px;
+  width: 100%;
+  resize: vertical;
+}
+.app-contact .mz__field textarea { min-height: 90px; }
+.app-contact .mz__field input:focus,
+.app-contact .mz__field textarea:focus { outline: none; border-color: var(--accent); }
+.app-contact .mz__field input.is-bad,
+.app-contact .mz__field textarea.is-bad { border-color: var(--accent-2); }
 
-.app-contact .cz__label {
+.app-contact .mz__status {
+  margin: 0;
+  min-height: 1.2em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+.app-contact .mz__status[data-tone="err"] { color: var(--accent-2); }
+.app-contact .mz__status[data-tone="ok"] { color: var(--crt-green); }
+
+.app-contact .mz__formactions { display: flex; align-items: center; gap: 10px; }
+.app-contact .mz__send {
+  font-family: var(--font-sys);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  color: var(--titlebar-ink);
+  background: var(--accent);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 4px 16px;
+  cursor: pointer;
+}
+.app-contact .mz__send:hover { background: var(--crt-green); }
+.app-contact .mz__send:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.app-contact .mz__send:disabled { opacity: 0.6; cursor: default; }
+.app-contact .mz__cancel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.app-contact .mz__cancel:hover { color: var(--accent); }
+
+/* socials inside compose */
+.app-contact .mz__elsewhere {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.app-contact .mz__elsewherelabel {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
   color: var(--ink-dim);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-
-.app-contact .cz__email {
-  font-family: var(--font-mono);
-  font-size: var(--fs-body);
-  color: var(--crt-green);
-  text-decoration: none;
-  word-break: break-all;
-  border-bottom: 1px dashed var(--line);
-  align-self: flex-start;
+.app-contact .mz__socials {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 8px;
 }
-.app-contact .cz__email:hover,
-.app-contact .cz__email:focus-visible { color: var(--accent); border-bottom-color: var(--accent); }
-
-.app-contact .cz__socials {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.app-contact .cz__social {
+.app-contact .mz__social {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -59,12 +324,12 @@
   border: 2px solid;
   border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
 }
-.app-contact .cz__social:hover,
-.app-contact .cz__social:focus-visible { color: var(--accent); }
-.app-contact .cz__social:active {
+.app-contact .mz__social:hover,
+.app-contact .mz__social:focus-visible { color: var(--accent); }
+.app-contact .mz__social:active {
   border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
-.app-contact .cz__badge {
+.app-contact .mz__socialbadge {
   display: grid;
   place-items: center;
   width: 22px; height: 22px;
@@ -75,99 +340,32 @@
   letter-spacing: 0.02em;
 }
 
-.app-contact .cz__form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: var(--gap);
-  border-top: 1px solid var(--line);
-}
-.app-contact .cz__field { display: flex; flex-direction: column; gap: 3px; }
-.app-contact .cz__field > span {
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--ink-dim);
-}
-
-.app-contact .cz__field input,
-.app-contact .cz__field textarea {
-  font-family: var(--font-mono);
-  /* 16px floor stops mobile zoom-jump on focus */
-  font-size: 16px;
-  color: var(--ink);
-  background: var(--bg);
-  border: 2px solid;
-  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
-  padding: 6px 8px;
-  width: 100%;
-  resize: vertical;
-}
-.app-contact .cz__field textarea { min-height: 70px; }
-.app-contact .cz__field input:focus,
-.app-contact .cz__field textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.app-contact .cz__field input.is-bad,
-.app-contact .cz__field textarea.is-bad {
-  border-color: var(--accent-2);
-}
-
-.app-contact .cz__status {
-  margin: 0;
-  min-height: 1.2em;
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-}
-.app-contact .cz__status[data-tone="err"] { color: var(--accent-2); }
-.app-contact .cz__status[data-tone="ok"] { color: var(--crt-green); }
-
-.app-contact .cz__send {
-  align-self: flex-start;
-  font-family: var(--font-sys);
-  font-size: 18px;
-  letter-spacing: 0.06em;
-  color: var(--titlebar-ink);
-  background: var(--accent);
-  border: 2px solid;
-  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
-  padding: 4px 16px;
-  cursor: pointer;
-}
-.app-contact .cz__send:hover { background: var(--crt-green); }
-.app-contact .cz__send:active {
-  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
-}
-.app-contact .cz__send:disabled { opacity: 0.6; cursor: default; }
-
-/* mobile near-fullscreen sheet: comfy tap targets, full-width controls, no overflow */
+/* ---- mobile: stack panes, reading pane slides over the list ---- */
 @media (max-width: 640px) {
-  /* the email link gets a generous tap target and never overflows the sheet */
-  .app-contact .cz__email {
-    align-self: stretch;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    padding: 6px 0;
-  }
+  .app-contact .mz__toolbar { flex-wrap: wrap; }
+  .app-contact .mz__tab { min-height: 44px; }
+  .app-contact .mz__compose { min-height: 44px; }
 
-  /* social pills: full 44px tap height, wrap (already) and stretch to fill */
-  .app-contact .cz__socials { gap: 10px; }
-  .app-contact .cz__social {
-    min-height: 44px;
-    padding: 8px 14px 8px 8px;
-    font-size: var(--fs-body);
+  .app-contact .mz__panes {
+    grid-template-columns: 1fr;
+    position: relative;
   }
-  .app-contact .cz__badge { width: 26px; height: 26px; font-size: 12px; }
-
-  /* form inputs already 16px (no iOS zoom) and full-width; give them more height */
-  .app-contact .cz__field input { min-height: 44px; }
-  .app-contact .cz__field textarea { min-height: 96px; }
-
-  /* submit: full-width, 44px+ tall, easy to hit */
-  .app-contact .cz__send {
-    align-self: stretch;
-    min-height: 48px;
-    padding: 10px 16px;
+  /* the list always shows; the reader overlays it once a message/compose opens */
+  .app-contact .mz__read {
+    position: absolute;
+    inset: 0;
+    display: none;
+    z-index: 1;
   }
+  .app-contact .mz__panes.show-read .mz__read { display: block; }
+
+  .app-contact .mz__back { display: inline-block; min-height: 44px; }
+
+  .app-contact .mz__item { min-height: 44px; padding: 10px 8px; }
+  .app-contact .mz__field input { min-height: 44px; }
+  .app-contact .mz__field textarea { min-height: 120px; }
+  .app-contact .mz__send { min-height: 48px; padding: 10px 16px; }
+  .app-contact .mz__cancel { min-height: 44px; }
+  .app-contact .mz__reply { min-height: 44px; }
+  .app-contact .mz__social { min-height: 44px; padding: 8px 14px 8px 8px; font-size: var(--fs-body); }
 }
