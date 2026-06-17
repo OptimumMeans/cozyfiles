@@ -1,5 +1,5 @@
 // desktop.js - app registry, desktop icons, taskbar + clock.
-import { wm } from './window-manager.js';
+import { wm, onTap } from './window-manager.js';
 
 const registry = new Map(); // id -> appCfg
 
@@ -23,21 +23,22 @@ export function initDesktop() {
     btn.className = 'icon';
     btn.type = 'button';
     btn.innerHTML = `<span class="icon__glyph" aria-hidden="true">${app.icon}</span><span class="icon__label">${app.name}</span>`;
-    let last = 0;
     const activate = () => app.open();
+    // Desktop (mouse + fine pointer): double-click opens, single click just
+    // selects/focuses the icon. Touch / small screens: a single tap opens.
+    const touchLike = () =>
+      matchMedia('(max-width: 640px)').matches ||
+      matchMedia('(hover: none), (pointer: coarse)').matches;
     btn.addEventListener('dblclick', activate);
-    btn.addEventListener('click', () => { // single tap on mobile, dbl on desktop
-      const now = Date.now ? 0 : 0; // Date.now avoided; use simple flag
-      last++;
-      if (matchMedia('(max-width:640px)').matches) activate();
-    });
+    onTap(btn, () => { if (touchLike()) activate(); else btn.focus(); });
     iconsEl.appendChild(btn);
   });
 
-  // taskbar
+  // taskbar. The cozyOS button is a "home" button: it minimizes all open
+  // windows to reveal the desktop (works the same on mobile and desktop).
   const startBtn = document.getElementById('start-btn');
   const itemsEl = document.getElementById('taskbar-items');
-  startBtn.addEventListener('click', () => openApp('files'));
+  onTap(startBtn, () => wm.showDesktop());
 
   wm.onChange((snap) => {
     itemsEl.innerHTML = '';
@@ -46,7 +47,7 @@ export function initDesktop() {
       b.className = 'taskitem' + (w.focused && !w.minimized ? ' is-focused' : '') + (w.minimized ? ' is-min' : '');
       b.type = 'button';
       b.innerHTML = `<span aria-hidden="true">${typeof w.icon === 'string' && w.icon.includes('/') ? '🗔' : w.icon}</span> ${w.title}`;
-      b.addEventListener('click', () => wm.toggleTaskItem(w.id));
+      onTap(b, () => wm.toggleTaskItem(w.id));
       itemsEl.appendChild(b);
     });
   });

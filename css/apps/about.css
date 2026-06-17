@@ -125,8 +125,36 @@
   }
 }
 
-/* mobile near-fullscreen sheet: a touch more breathing room */
+/* mobile near-fullscreen sheet: comfortable reading + no overflow */
 @media (max-width: 640px) {
-  .app-about .ab__doc { padding: 14px 16px; }
-  .app-about .ab__rule { font-size: 10px; }
+  /* bump body type slightly for phone reading comfort */
+  .app-about .ab { font-size: 15px; }
+
+  /* roomier padding; constrain line length so text is not edge-to-edge */
+  .app-about .ab__doc { padding: 18px 18px 24px; }
+  .app-about .ab__body { max-width: 60ch; }
+  .app-about .ab__p { line-height: 1.65; }
+
+  /* the divider rule must never force horizontal scroll */
+  .app-about .ab__rule {
+    font-size: 10px;
+    text-overflow: clip;
+  }
+
+  /* menu bar: let it wrap and tighten gaps so 4 items fit at 320px */
+  .app-about .ab__menu {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 5px 10px;
+  }
+}
+
+/* very narrow phones (<=360px): shrink menu chrome so it never overflows */
+@media (max-width: 360px) {
+  .app-about .ab__menu {
+    gap: 8px;
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+  .app-about .ab__doc { padding: 16px 14px 22px; }
 }

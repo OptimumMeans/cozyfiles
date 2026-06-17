@@ -31,6 +31,13 @@ class WindowManager {
       id: w.id, title: w._title, icon: w.icon, minimized: w.minimized,
       focused: w.el.style.zIndex == this.zTop,
     }));
+    // On mobile, an open (non-minimized) window is a full-screen sheet that
+    // should fully cover the desktop icons. Flag it on the desktop so CSS can
+    // hide the icon layer. Harmless on desktop (the class only does work in the
+    // mobile media query).
+    const anyOpen = [...this.windows.values()].some(w => !w.minimized);
+    const desktop = this.root && this.root.closest('.desktop');
+    if (desktop) desktop.classList.toggle('has-open-window', anyOpen);
     this._listeners.forEach(fn => fn(snap));
   }
 
@@ -77,7 +84,10 @@ class WindowManager {
 
     // position
     if (MOBILE()) {
-      Object.assign(el.style, { left: '0px', top: '0px', width: '100%', height: `calc(100% - var(--taskbar-h))` });
+      Object.assign(el.style, {
+        left: '0px', top: '0px', width: '100%',
+        height: 'calc(100% - var(--taskbar-h) - env(safe-area-inset-bottom, 0px))',
+      });
     } else {
       const px = x ?? (40 + this.cascade * 26);
       const py = y ?? (40 + this.cascade * 26);
@@ -96,11 +106,10 @@ class WindowManager {
     };
     this.windows.set(id, handle);
 
-    // wiring
-    el.querySelector('.win__close').addEventListener('click', (e) => { e.stopPropagation(); handle.close(); });
-    el.querySelector('.win__min').addEventListener('click', (e) => { e.stopPropagation(); handle.minimize(); });
-    el.addEventListener('mousedown', () => handle.focus(), true);
-    el.addEventListener('touchstart', () => handle.focus(), { capture: true, passive: true });
+    // wiring (pointer-event based so taps work reliably on touch devices)
+    onTap(el.querySelector('.win__close'), () => handle.close());
+    onTap(el.querySelector('.win__min'), () => handle.minimize());
+    el.addEventListener('pointerdown', () => handle.focus(), true);
     this._enableDrag(handle);
     if (resizable) this._enableResize(handle);
 
@@ -139,6 +148,9 @@ class WindowManager {
   _minimize(w) { w.minimized = true; w.el.hidden = true; this._emit(); }
   _restore(w) { w.minimized = false; w.el.hidden = false; w.focus(); }
 
+  // "home": minimize every open window so the desktop is revealed.
+  showDesktop() { this.windows.forEach(w => { if (!w.minimized) this._minimize(w); }); }
+
   toggleTaskItem(id) {
     const w = this.windows.get(id); if (!w) return;
     if (w.minimized) this._restore(w);
@@ -149,55 +161,40 @@ class WindowManager {
   _enableDrag(w) {
     const bar = w.el.querySelector('[data-drag]');
     let sx, sy, ox, oy, dragging = false;
-    const down = (e) => {
-      if (e.target.closest('.win__btn')) return;
-      if (MOBILE()) return; // sheets don't drag on mobile
+    bar.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.win__btn')) return; // let button taps through
+      if (MOBILE()) return;                       // sheets don't drag on mobile
       dragging = true;
-      const p = pt(e);
-      sx = p.x; sy = p.y; ox = w.el.offsetLeft; oy = w.el.offsetTop;
-      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
-      document.addEventListener('touchmove', move, { passive: false }); document.addEventListener('touchend', up);
+      sx = e.clientX; sy = e.clientY; ox = w.el.offsetLeft; oy = w.el.offsetTop;
+      bar.setPointerCapture?.(e.pointerId);
       e.preventDefault();
-    };
-    const move = (e) => {
+    });
+    bar.addEventListener('pointermove', (e) => {
       if (!dragging) return;
-      const p = pt(e);
-      w.el.style.left = (ox + p.x - sx) + 'px';
-      w.el.style.top = Math.max(0, oy + p.y - sy) + 'px';
-      if (e.cancelable) e.preventDefault();
-    };
-    const up = () => {
-      dragging = false; this._clamp(w);
-      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
-      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
-    };
-    bar.addEventListener('mousedown', down);
-    bar.addEventListener('touchstart', down, { passive: false });
+      w.el.style.left = (ox + e.clientX - sx) + 'px';
+      w.el.style.top = Math.max(0, oy + e.clientY - sy) + 'px';
+    });
+    const end = () => { if (dragging) { dragging = false; this._clamp(w); } };
+    bar.addEventListener('pointerup', end);
+    bar.addEventListener('pointercancel', end);
   }
 
   _enableResize(w) {
     const grip = w.el.querySelector('[data-resize]'); if (!grip) return;
     let sx, sy, ow, oh, sizing = false;
-    const down = (e) => {
-      sizing = true; const p = pt(e);
-      sx = p.x; sy = p.y; ow = w.el.offsetWidth; oh = w.el.offsetHeight;
-      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
-      document.addEventListener('touchmove', move, { passive: false }); document.addEventListener('touchend', up);
+    grip.addEventListener('pointerdown', (e) => {
+      sizing = true; sx = e.clientX; sy = e.clientY; ow = w.el.offsetWidth; oh = w.el.offsetHeight;
+      grip.setPointerCapture?.(e.pointerId);
       e.preventDefault(); e.stopPropagation();
-    };
-    const move = (e) => {
-      if (!sizing) return; const p = pt(e);
-      w.el.style.width = Math.max(240, ow + p.x - sx) + 'px';
-      w.el.style.height = Math.max(160, oh + p.y - sy) + 'px';
-      if (e.cancelable) e.preventDefault();
-    };
-    const up = () => {
-      sizing = false;
-      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
-      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
-    };
-    grip.addEventListener('mousedown', down);
-    grip.addEventListener('touchstart', down, { passive: false });
+    });
+    grip.addEventListener('pointermove', (e) => {
+      if (!sizing) return;
+      w.el.style.width = Math.max(240, ow + e.clientX - sx) + 'px';
+      w.el.style.height = Math.max(160, oh + e.clientY - sy) + 'px';
+    });
+    const end = () => { sizing = false; };
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
   }
 
   _clamp(w) {
@@ -210,9 +207,29 @@ class WindowManager {
   _clampAll() { this.windows.forEach(w => this._clamp(w)); }
 }
 
-function pt(e) {
-  const t = e.touches?.[0] || e.changedTouches?.[0];
-  return t ? { x: t.clientX, y: t.clientY } : { x: e.clientX, y: e.clientY };
+// Reliable tap for mouse + touch + keyboard. On touch we act on pointerup and
+// swallow the ghost click that follows; mouse and keyboard go through click.
+// This avoids the dropped/delayed synthetic clicks that plague chrome buttons
+// on mobile when ancestors carry non-passive touch handlers.
+export function onTap(el, fn) {
+  let downX = 0, downY = 0, moved = false, justTouched = false;
+  el.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; moved = false; });
+  el.addEventListener('pointermove', (e) => {
+    if (Math.abs(e.clientX - downX) > 10 || Math.abs(e.clientY - downY) > 10) moved = true;
+  });
+  el.addEventListener('pointerup', (e) => {
+    if (moved) return;
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      justTouched = true;
+      e.preventDefault();
+      fn(e);
+      setTimeout(() => { justTouched = false; }, 500);
+    }
+  });
+  el.addEventListener('click', (e) => {
+    if (justTouched) { justTouched = false; return; } // ignore ghost click
+    fn(e);
+  });
 }
 
 export const wm = new WindowManager();

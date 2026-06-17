@@ -1,5 +1,5 @@
 // player.js - PLAYER (winamp-ish fake media player; no real audio wired yet).
-import { wm } from '../window-manager.js';
+import { wm, onTap } from '../window-manager.js';
 import { registerApp } from '../desktop.js';
 
 // Placeholder playlist. No real audio files exist, so each track is a warm
@@ -94,6 +94,25 @@ function render(el, win) {
   let tickId = 0;         // reduced-motion fallback timer
   const bars = new Array(24).fill(0);
 
+  // Logical (CSS-pixel) canvas size used for all draw math. The backing
+  // buffer is scaled by devicePixelRatio so the visualizer stays crisp when
+  // the window is a full-screen sheet on phones (or on HiDPI displays).
+  let vizW = 320;
+  let vizH = 44;
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const cssW = Math.max(1, Math.round(rect.width)) || vizW;
+    const cssH = Math.max(1, Math.round(rect.height)) || vizH;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    vizW = cssW;
+    vizH = cssH;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Repaint immediately so a resize while paused does not leave it blank.
+    drawViz(playing && voices.length > 0);
+  }
+
   // ---- Web Audio synth engine -------------------------------------------
   // Lazily created on first play (an autoplay-policy-safe user gesture).
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -183,7 +202,7 @@ function render(el, win) {
       <span class="player__track-n">${String(i + 1).padStart(2, '0')}</span>
       <span class="player__track-title">${track.title}</span>
       <span class="player__track-time">${fmt(track.seconds)}</span>`;
-    li.addEventListener('click', () => {
+    onTap(li, () => {
       index = i;
       loadTrack();
       start();
@@ -255,8 +274,8 @@ function render(el, win) {
   }
 
   function drawViz(active) {
-    const w = canvas.width;
-    const h = canvas.height;
+    const w = vizW;
+    const h = vizH;
     ctx.clearRect(0, 0, w, h);
     const gap = 2;
     const bw = (w - gap * (bars.length - 1)) / bars.length;
@@ -297,18 +316,10 @@ function render(el, win) {
     rafId = requestAnimationFrame(loop);
   }
 
-  // Wiring.
-  el.querySelector('[data-act="play"]').addEventListener('click', () => {
-    playing ? stop() : start();
-  });
-  el.querySelector('[data-act="next"]').addEventListener('click', () => {
-    next();
-    if (playing) { lastTs = 0; }
-  });
-  el.querySelector('[data-act="prev"]').addEventListener('click', () => {
-    prev();
-    if (playing) { lastTs = 0; }
-  });
+  // Wiring (onTap so play/prev/next respond reliably to touch on mobile).
+  onTap(el.querySelector('[data-act="play"]'), () => { playing ? stop() : start(); });
+  onTap(el.querySelector('[data-act="next"]'), () => { next(); if (playing) { lastTs = 0; } });
+  onTap(el.querySelector('[data-act="prev"]'), () => { prev(); if (playing) { lastTs = 0; } });
   volInput.addEventListener('input', () => {
     el.querySelector('.player').style.setProperty('--vol', `${volInput.value}%`);
     if (master && actx) {
@@ -316,17 +327,33 @@ function render(el, win) {
     }
   });
 
+  // Keep the canvas buffer matched to its rendered size. Window resize on
+  // desktop and orientation changes / sheet resizes on mobile both fire here.
+  // A ResizeObserver tracks the element directly (the WM resizes the window,
+  // not the viewport, when dragged); window listeners cover orientation flips.
+  let ro = null;
+  if (window.ResizeObserver) {
+    ro = new ResizeObserver(() => resizeCanvas());
+    ro.observe(canvas);
+  }
+  const onWinResize = () => resizeCanvas();
+  window.addEventListener('resize', onWinResize);
+  window.addEventListener('orientationchange', onWinResize);
+
   // Clean up the rAF loop AND tear down audio when the window closes.
   const origClose = win.close;
   win.close = () => {
     stop();
+    if (ro) { ro.disconnect(); ro = null; }
+    window.removeEventListener('resize', onWinResize);
+    window.removeEventListener('orientationchange', onWinResize);
     if (actx) { try { actx.close(); } catch { /* already closed */ } actx = null; }
     origClose();
   };
 
   // Init.
   loadTrack();
-  drawViz(false);
+  resizeCanvas();   // sets the backing buffer + paints the first frame
 }
 
 registerApp({

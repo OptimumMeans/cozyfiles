@@ -124,6 +124,8 @@
   width: 70px;
   accent-color: var(--accent);
   cursor: pointer;
+  /* Give touch a real target to grab even on desktop-sized windows. */
+  min-width: 0;
 }
 
 /* playlist */
@@ -164,4 +166,87 @@
 @media (prefers-reduced-motion: reduce) {
   .app-player .player__marquee.is-running .player__marquee-text { animation: none; }
   .app-player .player__seek-fill { transition: none; }
+}
+
+/* Mobile: the WM forces the window to a full-screen sheet under 640px.
+   Fill it nicely, give every control a comfortable (>=44px) tap target, and
+   keep the visualizer crisp (the JS resizes the canvas buffer to match). */
+@media (max-width: 640px) {
+  .app-player .player {
+    gap: 10px;
+    /* never let a long title push past the viewport edge */
+    overflow-x: hidden;
+  }
+
+  /* Taller visualizer to use the extra vertical room of a full sheet. */
+  .app-player .player__viz {
+    height: 72px;
+  }
+
+  /* Transport: comfortable, evenly distributed touch targets. */
+  .app-player .player__controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .app-player .player__btn {
+    min-width: 56px;
+    min-height: 44px;
+    font-size: var(--fs-sys);
+    padding: 6px 12px;
+  }
+  .app-player .player__btn--play {
+    min-width: 64px;
+  }
+
+  /* Volume: full-width row under the transport buttons, big draggable thumb. */
+  .app-player .player__vol {
+    margin-left: 0;
+    flex: 1 0 100%;
+    gap: 8px;
+  }
+  .app-player .player__vol-input {
+    flex: 1;
+    width: auto;
+    height: 44px;             /* tall hit area for dragging */
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .app-player .player__vol-input::-webkit-slider-runnable-track {
+    height: 6px;
+    background: var(--line);
+  }
+  .app-player .player__vol-input::-moz-range-track {
+    height: 6px;
+    background: var(--line);
+  }
+  .app-player .player__vol-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    margin-top: -11px;        /* center the thumb on the 6px track */
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bevel-dark);
+    cursor: pointer;
+  }
+  .app-player .player__vol-input::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bevel-dark);
+    cursor: pointer;
+  }
+
+  /* Playlist rows: tappable height, no horizontal overflow. */
+  .app-player .player__track {
+    min-height: 44px;
+    align-items: center;
+    padding: 6px 8px;
+  }
+  .app-player .player__track-title {
+    min-width: 0;             /* lets the ellipsis kick in inside flex */
+  }
 }

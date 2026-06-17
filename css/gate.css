@@ -35,6 +35,7 @@
   color: var(--ink); letter-spacing: 0.34em; text-indent: 0.34em;
   text-transform: lowercase;
 }
+.gate__inner { max-width: 100%; padding: 0 16px; box-sizing: border-box; }
 .gate__enter {
   margin-top: 1.5rem;
   background: none; border: 1px solid var(--ink-dim);
@@ -42,6 +43,7 @@
   font-family: var(--font-mono); font-size: var(--fs-sm);
   letter-spacing: 0.3em; text-transform: uppercase;
   padding: 0.6rem 1.4rem;
+  min-height: 44px; min-width: 44px;
   animation: pulse 2.2s infinite ease-in-out;
 }
 .gate__enter:hover { color: var(--bg); background: var(--accent); border-color: var(--accent); }
@@ -72,6 +74,11 @@
 }
 @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 @keyframes gate-out { to { opacity: 0; visibility: hidden; } }
+
+/* tighten the wide letter-spacing on very narrow phones so it never overflows */
+@media (max-width: 360px) {
+  .gate__word { letter-spacing: 0.18em; text-indent: 0.18em; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .gate__mark, .gate__mark::before, .gate__mark::after, .gate__enter { animation: none; }

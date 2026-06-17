@@ -16,3 +16,8 @@
   font-size: var(--fs-body);
   line-height: 1.5;
 }
+
+/* mobile sheets: textarea fills the sheet, 16px stops the iOS zoom-jump */
+@media (max-width: 640px) {
+  .app-notepad .np__text { font-size: 16px; }
+}

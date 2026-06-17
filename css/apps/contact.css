@@ -139,3 +139,35 @@
   border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
 .app-contact .cz__send:disabled { opacity: 0.6; cursor: default; }
+
+/* mobile near-fullscreen sheet: comfy tap targets, full-width controls, no overflow */
+@media (max-width: 640px) {
+  /* the email link gets a generous tap target and never overflows the sheet */
+  .app-contact .cz__email {
+    align-self: stretch;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+  }
+
+  /* social pills: full 44px tap height, wrap (already) and stretch to fill */
+  .app-contact .cz__socials { gap: 10px; }
+  .app-contact .cz__social {
+    min-height: 44px;
+    padding: 8px 14px 8px 8px;
+    font-size: var(--fs-body);
+  }
+  .app-contact .cz__badge { width: 26px; height: 26px; font-size: 12px; }
+
+  /* form inputs already 16px (no iOS zoom) and full-width; give them more height */
+  .app-contact .cz__field input { min-height: 44px; }
+  .app-contact .cz__field textarea { min-height: 96px; }
+
+  /* submit: full-width, 44px+ tall, easy to hit */
+  .app-contact .cz__send {
+    align-self: stretch;
+    min-height: 48px;
+    padding: 10px 16px;
+  }
+}

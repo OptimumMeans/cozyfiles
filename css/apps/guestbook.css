@@ -71,3 +71,17 @@
 .app-guestbook .gb__sign:active {
   border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
+
+/* mobile sheets: full-width fields, no zoom-jump, a real tap target.
+   long names/messages wrap so the entries list never overflows sideways. */
+@media (max-width: 640px) {
+  .app-guestbook .gb__name,
+  .app-guestbook .gb__msg { font-size: 16px; }
+  .app-guestbook .gb__who { word-break: break-word; min-width: 0; }
+  .app-guestbook .gb__row { flex-wrap: wrap; }
+  .app-guestbook .gb__sign {
+    align-self: stretch;
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+}

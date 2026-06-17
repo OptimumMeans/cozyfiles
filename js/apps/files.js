@@ -12,19 +12,22 @@ const FOLDERS = [
     glyph: '📂',
     files: [
       {
-        slug: 'nocturne-loop', name: 'NOCTURNE_LOOP.mov', title: 'Nocturne Loop',
-        type: '.mov', accent: 'accent',
-        blurb: 'A film that only plays after midnight. We are not sure who keeps rewinding it.',
+        slug: 'chase-atlantic-fillmore', name: 'CHASE_ATLANTIC_FILLMORE.mp4', title: 'Chase Atlantic // Fillmore',
+        type: '.mp4', accent: 'accent', kind: 'video',
+        media: 'assets/media/chase-atlantic-fillmore.mp4', poster: 'assets/media/chase-atlantic-fillmore.jpg',
+        blurb: 'Recap cut from the Fillmore Minneapolis show.',
       },
       {
-        slug: 'static-bloom', name: 'STATIC_BLOOM.psd', title: 'Static Bloom',
-        type: '.psd', accent: 'accent-2',
-        blurb: 'Identity work for a flower shop that sells only on dead channels.',
+        slug: 'tiesto', name: 'TIESTO.mp4', title: 'Tiesto',
+        type: '.mp4', accent: 'accent-2', kind: 'video',
+        media: 'assets/media/tiesto.mp4', poster: 'assets/media/tiesto.jpg',
+        blurb: 'Live visual recap.',
       },
       {
-        slug: 'low-tide-radio', name: 'LOW_TIDE_RADIO.mp3', title: 'Low Tide Radio',
-        type: '.mp3', accent: 'crt-green',
-        blurb: 'Twelve hours of signal we recorded from an empty parking ramp.',
+        slug: 'cozyfiles-live', name: 'COZYFILES_LIVE.jpg', title: 'Cozyfiles // Live',
+        type: '.jpg', accent: 'crt-green', kind: 'image',
+        media: 'assets/media/cozyfiles-live.jpg',
+        blurb: 'Still from the floor.',
       },
       {
         slug: 'ghost-grid', name: 'GHOST_GRID.jpg', title: 'Ghost Grid',
@@ -86,9 +89,25 @@ const FOLDERS = [
 ];
 
 const TYPE_GLYPH = {
-  '.mov': '🎞️', '.mp3': '🎵', '.jpg': '🖼️',
+  '.mov': '🎞️', '.mp4': '🎬', '.mp3': '🎵', '.jpg': '🖼️',
   '.psd': '🎨', '.txt': '📄', '.bin': '⬛',
 };
+
+// Real media renders inline; everything else gets the tinted placeholder cover.
+function coverMarkup(file) {
+  if (file.kind === 'video' && file.media) {
+    return `<video class="fx-media" controls playsinline preload="metadata"
+        ${file.poster ? `poster="${escapeHtml(file.poster)}"` : ''}>
+        <source src="${escapeHtml(file.media)}" type="video/mp4" />
+      </video>`;
+  }
+  if (file.kind === 'image' && file.media) {
+    return `<img class="fx-media" src="${escapeHtml(file.media)}" alt="${escapeHtml(file.title)}" loading="lazy" />`;
+  }
+  return `<div class="fx-cover fx-cover--${file.accent}" aria-hidden="true">
+      <span class="fx-cover__type">${escapeHtml(file.type)}</span>
+    </div>`;
+}
 
 function findFile(slug) {
   for (const folder of FOLDERS) {
@@ -107,25 +126,24 @@ function escapeHtml(s) {
 function openViewer(slug) {
   const file = findFile(slug);
   if (!file) return;
+  const hasMedia = !!file.media;
   wm.open({
     id: `files-view-${slug}`,
     title: file.name,
     icon: TYPE_GLYPH[file.type] || '🗔',
-    width: 360, height: 380,
+    width: hasMedia ? 480 : 360, height: hasMedia ? 440 : 380,
     className: 'app-files',
     render: (el) => {
       el.innerHTML = `
         <div class="fx-viewer">
-          <div class="fx-cover fx-cover--${file.accent}" aria-hidden="true">
-            <span class="fx-cover__type">${escapeHtml(file.type)}</span>
-          </div>
+          ${coverMarkup(file)}
           <h2 class="fx-viewer__title">${escapeHtml(file.title)}</h2>
           <p class="fx-viewer__meta">
             <span class="fx-tag">${escapeHtml(file.type)}</span>
             <span class="fx-tag">${escapeHtml(file.name)}</span>
           </p>
           <p class="fx-viewer__blurb">${escapeHtml(file.blurb)}</p>
-          <p class="fx-viewer__note">placeholder // real cut drops soon</p>
+          ${hasMedia ? '' : '<p class="fx-viewer__note">placeholder // real cut drops soon</p>'}
         </div>
       `;
     },
@@ -191,15 +209,20 @@ function render(contentEl) {
     btn.addEventListener('click', () => selectFolder(btn.dataset.folder));
   });
 
-  // delegated open: double-click (desktop) or single tap (mobile), plus keyboard.
-  const isMobile = () => window.matchMedia('(max-width: 640px)').matches;
+  // delegated open: double-click (desktop) or single tap (touch/small-screen),
+  // plus keyboard. Touch capability OR a small viewport both count as "tap to open"
+  // so phones and touch tablets get a single-tap target.
+  const isTapToOpen = () => (
+    window.matchMedia('(max-width: 640px)').matches ||
+    window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  );
   grid.addEventListener('dblclick', (e) => {
     const li = e.target.closest('.fx-file');
     if (li) openViewer(li.dataset.slug);
   });
   grid.addEventListener('click', (e) => {
     const li = e.target.closest('.fx-file');
-    if (li && isMobile()) openViewer(li.dataset.slug);
+    if (li && isTapToOpen()) openViewer(li.dataset.slug);
   });
   grid.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;

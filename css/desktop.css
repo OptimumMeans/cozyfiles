@@ -14,9 +14,9 @@
   overflow: hidden;
 }
 
-/* desktop icons */
+/* desktop icons - kept below the window band so open windows cover them */
 .desktop__icons {
-  position: absolute; inset: 0 auto 0 0;
+  position: absolute; inset: 0 auto 0 0; z-index: var(--z-desktop);
   padding: 18px; display: flex; flex-direction: column; flex-wrap: wrap;
   gap: 10px; align-content: flex-start;
   max-height: calc(100% - var(--taskbar-h)); width: 120px;
@@ -36,9 +36,13 @@
 
 /* taskbar */
 .taskbar {
-  position: absolute; left: 0; right: 0; bottom: 0; height: var(--taskbar-h);
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: calc(var(--taskbar-h) + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-taskbar);
   display: flex; align-items: stretch; gap: 4px; padding: 4px;
+  padding-left: calc(4px + env(safe-area-inset-left, 0px));
+  padding-right: calc(4px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
   background: var(--chrome); color: var(--chrome-ink);
   border-top: 2px solid var(--bevel-light);
 }
@@ -46,10 +50,17 @@
   font-family: var(--font-sys); font-size: 20px; padding: 0 14px;
   background: var(--chrome); color: var(--chrome-ink);
   border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
-  font-weight: bold;
+  font-weight: bold; flex: none;
 }
 .taskbar__start:active { border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); }
-.taskbar__items { display: flex; gap: 4px; flex: 1; overflow: hidden; }
+/* items scroll horizontally so many windows never crowd out the clock */
+.taskbar__items {
+  display: flex; gap: 4px; flex: 1; min-width: 0;
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
+}
+.taskbar__items::-webkit-scrollbar { display: none; }
+.taskitem { flex: 0 0 auto; }
 .taskitem {
   font-family: var(--font-mono); font-size: var(--fs-sm);
   background: var(--chrome); color: var(--chrome-ink);
@@ -60,10 +71,25 @@
 .taskitem.is-min { opacity: 0.65; }
 .taskbar__clock {
   font-family: var(--font-sys); font-size: 20px; padding: 0 14px;
-  display: grid; place-items: center;
+  display: grid; place-items: center; flex: none;
   border: 2px solid; border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
 
 @media (max-width: 640px) {
-  .desktop__icons { flex-direction: row; width: 100%; max-height: none; }
+  .desktop__icons {
+    flex-direction: row; flex-wrap: wrap; width: 100%; max-height: none;
+    padding-left: calc(18px + env(safe-area-inset-left, 0px));
+    padding-right: calc(18px + env(safe-area-inset-right, 0px));
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
+  /* a full-screen window sheet must fully cover the icons */
+  .desktop.has-open-window .desktop__icons { display: none; }
+
+  /* 44px minimum tap targets */
+  .icon { width: 88px; min-height: 72px; padding: 10px 6px; }
+  .icon__glyph { font-size: 34px; }
+
+  .taskbar__start { min-height: 44px; min-width: 44px; }
+  .taskitem { min-height: 44px; max-width: 150px; display: flex; align-items: center; }
+  .taskbar__clock { min-height: 44px; }
 }

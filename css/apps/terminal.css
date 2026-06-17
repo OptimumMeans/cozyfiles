@@ -56,3 +56,21 @@
 @media (prefers-reduced-motion: reduce) {
   .app-terminal .term__cursor { animation: none; }
 }
+
+/* mobile sheets: keep the input usable with a touch keyboard.
+   - 16px input font stops iOS from zoom-jumping on focus
+   - the prompt line wraps instead of overflowing at 320px
+   - the output area keeps scrolling */
+@media (max-width: 640px) {
+  .app-terminal .term { padding: 10px; }
+  .app-terminal .term__line {
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .app-terminal .term__input {
+    font-size: 16px;
+    flex: 1 1 60%;
+  }
+  .app-terminal .term__prompt,
+  .app-terminal .term__cursor { font-size: 16px; }
+}

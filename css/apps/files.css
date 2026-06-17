@@ -217,9 +217,17 @@
   padding-top: 8px;
 }
 
-/* ---- mobile: stack the panes ---- */
+/* ---- mobile: stack the panes ----
+   At <=640px the window is a full-screen sheet (WindowManager owns that). The
+   two panes stack: the folder tree becomes a compact horizontal scrolling strip
+   on top, the file grid fills the rest below. Tap targets stay >=44px high. */
 @media (max-width: 640px) {
-  .app-files .fx { flex-direction: column; }
+  .app-files .fx {
+    flex-direction: column;
+    font-size: var(--fs-body);
+  }
+
+  /* folder tree -> horizontal scrolling strip / segmented control */
   .app-files .fx-tree {
     flex: 0 0 auto;
     flex-direction: row;
@@ -227,8 +235,68 @@
     border-right: none;
     border-bottom: 2px solid var(--bevel-dark);
     overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
   .app-files .fx-tree__head { display: none; }
-  .app-files .fx-tree ul { display: flex; }
-  .app-files .fx-tree__item { white-space: nowrap; }
+  .app-files .fx-tree ul {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 6px;
+  }
+  .app-files .fx-tree li { flex: 0 0 auto; }
+  .app-files .fx-tree__item {
+    width: auto;
+    min-height: 44px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    border-color: var(--line);
+    background: var(--bg);
+  }
+  .app-files .fx-tree__item[aria-selected="true"] {
+    background: var(--accent);
+    color: var(--titlebar-ink);
+    border-color: var(--bevel-light);
+  }
+  .app-files .fx-tree__glyph { font-size: 16px; }
+  .app-files .fx-tree__label { flex: 0 0 auto; }
+
+  /* status / path bar: truncate with ellipsis, never overflow */
+  .app-files .fx-statusbar { padding: 7px 8px; }
+
+  /* file grid: roomier columns, tall tap targets */
+  .app-files .fx-grid {
+    padding: 8px;
+    gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  }
+  .app-files .fx-file {
+    min-height: 78px;
+    padding: 10px 6px;
+    justify-content: center;
+  }
+  .app-files .fx-file__icon { font-size: 34px; }
+  .app-files .fx-file__name { font-size: var(--fs-sm); }
+
+  /* viewer sheet: scale the cover + text down so nothing overflows */
+  .app-files .fx-viewer { padding: 14px; }
+  .app-files .fx-cover {
+    height: clamp(96px, 28vh, 150px);
+    margin-bottom: 14px;
+  }
+  .app-files .fx-viewer__title { font-size: calc(var(--fs-sys) + 2px); }
+  .app-files .fx-viewer__blurb { font-size: var(--fs-body); }
+  .app-files .fx-viewer__meta .fx-tag { word-break: break-all; }
 }
+
+/* inline media in the file viewer (real video / image work) */
+.app-files .fx-media {
+  width: 100%;
+  max-height: 60vh;
+  display: block;
+  background: #000;
+  border: 1px solid var(--line);
+  object-fit: contain;
+}
+.app-files .fx-viewer video.fx-media { aspect-ratio: 16 / 9; height: auto; }
