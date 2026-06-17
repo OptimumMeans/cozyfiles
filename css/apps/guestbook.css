@@ -45,6 +45,30 @@
 }
 
 .app-guestbook .gb__form { display: flex; flex-direction: column; gap: 6px; }
+/* honeypot: visually + semantically gone for humans, present for bots. */
+.app-guestbook .gb__hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.app-guestbook .gb__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.app-guestbook .gb__note {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+.app-guestbook .gb__sign:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 .app-guestbook .gb__name,
 .app-guestbook .gb__msg {
   background: var(--bg);
@@ -58,7 +82,6 @@
 .app-guestbook .gb__name:focus,
 .app-guestbook .gb__msg:focus { outline: 1px solid var(--accent); }
 .app-guestbook .gb__sign {
-  align-self: flex-end;
   background: var(--accent);
   color: var(--titlebar-ink);
   border: 2px solid;
@@ -79,8 +102,9 @@
   .app-guestbook .gb__msg { font-size: 16px; }
   .app-guestbook .gb__who { word-break: break-word; min-width: 0; }
   .app-guestbook .gb__row { flex-wrap: wrap; }
+  .app-guestbook .gb__bar { flex-wrap: wrap; }
   .app-guestbook .gb__sign {
-    align-self: stretch;
+    flex: 1;
     min-height: 44px;
     padding: 8px 16px;
   }
