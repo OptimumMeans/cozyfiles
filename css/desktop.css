@@ -14,6 +14,65 @@
   overflow: hidden;
 }
 
+/* wallpaper variants (cycled via right-click > Change wallpaper). Each rule
+   overrides only the top brand layer; the vignette + grid + base stay intact so
+   icon/chrome contrast is preserved. data-wallpaper is set by desktop.js. */
+.desktop[data-wallpaper="grid"] {
+  background:
+    radial-gradient(130% 110% at 78% 18%, rgba(182,255,60,0.05) 0%, rgba(10,10,10,0) 45%),
+    radial-gradient(120% 120% at 20% 0%, #18181a 0%, var(--bg) 62%),
+    repeating-linear-gradient(30deg,  rgba(232,230,223,0.035) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(-30deg, rgba(232,230,223,0.035) 0 1px, transparent 1px 46px),
+    var(--bg);
+}
+.desktop[data-wallpaper="acid"] {
+  background:
+    radial-gradient(120% 120% at 50% 120%, rgba(182,255,60,0.16) 0%, rgba(10,10,10,0) 55%),
+    radial-gradient(100% 90% at 12% -10%, rgba(255,94,58,0.10) 0%, rgba(10,10,10,0) 50%),
+    radial-gradient(120% 120% at 50% 30%, var(--bg-2) 0%, var(--bg) 70%),
+    var(--bg);
+}
+.desktop[data-wallpaper="dots"] {
+  background:
+    radial-gradient(circle at center, rgba(182,255,60,0.16) 0 1.4px, transparent 1.6px) 0 0 / 26px 26px,
+    radial-gradient(120% 120% at 20% 0%, #18181a 0%, var(--bg) 62%),
+    var(--bg);
+}
+.desktop[data-wallpaper="void"] {
+  background:
+    radial-gradient(140% 120% at 50% 0%, #141414 0%, var(--bg) 70%),
+    var(--bg);
+}
+
+/* desktop right-click menu (win98-style). Sits above icons, below taskbar. */
+.ctx-menu {
+  /* above icons + windows, but strictly below the taskbar / boot / gate / crt */
+  position: absolute; z-index: calc(var(--z-taskbar) - 1); min-width: 168px;
+  background: var(--chrome); color: var(--chrome-ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 3px; box-shadow: 2px 2px 0 rgba(0,0,0,0.45);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  user-select: none;
+}
+.ctx-menu[hidden] { display: none; }
+.ctx-menu__item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: 0; color: inherit; text-align: left;
+  padding: 6px 18px 6px 10px; font: inherit; white-space: nowrap;
+}
+.ctx-menu__item:hover, .ctx-menu__item:focus-visible {
+  background: var(--accent); color: var(--titlebar-ink); outline: none;
+}
+.ctx-menu__glyph { width: 16px; text-align: center; }
+.ctx-menu__sep { height: 0; border-top: 1px solid var(--bevel-dark);
+  border-bottom: 1px solid var(--bevel-light); margin: 3px 2px; }
+
+@media (max-width: 640px) {
+  /* comfortable long-press menu tap targets */
+  .ctx-menu { min-width: 200px; }
+  .ctx-menu__item { padding: 12px 18px 12px 12px; min-height: 44px; }
+}
+
 /* desktop icons - kept below the window band so open windows cover them */
 .desktop__icons {
   position: absolute; inset: 0 auto 0 0; z-index: var(--z-desktop);
@@ -32,6 +91,12 @@
   font-family: var(--font-sys); font-size: 16px; letter-spacing: 0.03em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   max-width: 100%;
+}
+
+/* "Arrange icons" snaps the layout into a tidy single column. The default
+   flex flow already auto-arranges; this class just guarantees a clean reset. */
+.desktop__icons.is-arranged {
+  flex-direction: column; flex-wrap: nowrap; align-content: flex-start;
 }
 
 /* taskbar */
