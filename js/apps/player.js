@@ -2,14 +2,24 @@
 import { wm } from '../window-manager.js';
 import { registerApp } from '../desktop.js';
 
-// Placeholder playlist. No real audio files exist yet, so durations are faked.
+// Placeholder playlist. No real audio files exist, so each track is a warm
+// generative pad synthesized live via the Web Audio API. `root` is the base
+// note in Hz; `mode` picks the chord tones layered above it. Drop real audio
+// in later by swapping the synth for an <audio> element keyed off these rows.
 const PLAYLIST = [
-  { title: 'untitled (loop.001)', artist: 'cozyfiles', seconds: 187 },
-  { title: 'dust on the lens', artist: 'cozyfiles', seconds: 224 },
-  { title: 'low orbit / no signal', artist: 'cozyfiles', seconds: 153 },
-  { title: 'ghost in the cache', artist: 'cozyfiles', seconds: 201 },
-  { title: 'after hours (rendered)', artist: 'cozyfiles', seconds: 168 },
+  { title: 'untitled (loop.001)',    artist: 'cozyfiles', seconds: 187, root: 110.00, mode: 'minor' }, // A2
+  { title: 'dust on the lens',       artist: 'cozyfiles', seconds: 224, root: 130.81, mode: 'major' }, // C3
+  { title: 'low orbit / no signal',  artist: 'cozyfiles', seconds: 153, root:  98.00, mode: 'sus' },   // G2
+  { title: 'ghost in the cache',     artist: 'cozyfiles', seconds: 201, root: 146.83, mode: 'minor' }, // D3
+  { title: 'after hours (rendered)', artist: 'cozyfiles', seconds: 168, root: 123.47, mode: 'major' }, // B2
 ];
+
+// Chord tone ratios over the root for each mode (root, third, fifth, octave).
+const CHORDS = {
+  minor: [1, 6 / 5, 3 / 2, 2],
+  major: [1, 5 / 4, 3 / 2, 2],
+  sus:   [1, 4 / 3, 3 / 2, 2],
+};
 
 const reducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -72,17 +82,97 @@ function render(el, win) {
   const playBtn = el.querySelector('.player__btn--play');
   const listEl = el.querySelector('.player__list');
   const volInput = el.querySelector('.player__vol-input');
-  // Guard the audio element so a missing src never errors or 404s.
+  // No audio file: keep the element guarded so a missing src never 404s.
   const audio = el.querySelector('.player__audio');
   audio.removeAttribute('src');
 
   let index = 0;
   let playing = false;
-  let elapsed = 0;        // fake playback position in seconds
+  let elapsed = 0;        // playback position in seconds
   let lastTs = 0;         // rAF timestamp bookkeeping
   let rafId = 0;
   let tickId = 0;         // reduced-motion fallback timer
   const bars = new Array(24).fill(0);
+
+  // ---- Web Audio synth engine -------------------------------------------
+  // Lazily created on first play (an autoplay-policy-safe user gesture).
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let actx = null;        // AudioContext
+  let master = null;      // master GainNode (volume)
+  let analyser = null;    // AnalyserNode -> real visualizer
+  let freqData = null;    // Uint8Array of frequency bins
+  let voices = [];        // active oscillator/gain nodes for the current track
+
+  function volGain() { return Math.pow(volInput.value / 100, 1.6) * 0.5; }
+
+  function ensureAudio() {
+    if (!AC) return false;            // no Web Audio: stay silent, visuals only
+    if (!actx) {
+      actx = new AC();
+      master = actx.createGain();
+      master.gain.value = volGain();
+      analyser = actx.createAnalyser();
+      analyser.fftSize = 64;
+      freqData = new Uint8Array(analyser.frequencyBinCount);
+      master.connect(analyser);
+      analyser.connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return true;
+  }
+
+  // Build the layered pad for the current track and fade it in.
+  function startVoices() {
+    if (!ensureAudio()) return;
+    stopVoices(true);
+    const t = PLAYLIST[index];
+    const ratios = CHORDS[t.mode] || CHORDS.minor;
+    const now = actx.currentTime;
+    ratios.forEach((ratio, i) => {
+      const osc = actx.createOscillator();
+      osc.type = i === ratios.length - 1 ? 'triangle' : 'sawtooth';
+      osc.frequency.value = t.root * ratio;
+      osc.detune.value = (i - 1.5) * 4;       // gentle chorus spread
+
+      const filter = actx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 600 + i * 220;
+      filter.Q.value = 0.8;
+
+      const g = actx.createGain();
+      g.gain.value = 0;
+      const target = 0.22 / ratios.length * (i === 0 ? 1.4 : 1);
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(target, now + 1.2);
+
+      // slow tremolo so the pad breathes
+      const lfo = actx.createOscillator();
+      lfo.frequency.value = 0.07 + i * 0.03;
+      const lfoGain = actx.createGain();
+      lfoGain.gain.value = target * 0.35;
+      lfo.connect(lfoGain).connect(g.gain);
+
+      osc.connect(filter).connect(g).connect(master);
+      osc.start(now);
+      lfo.start(now);
+      voices.push({ osc, lfo, g });
+    });
+  }
+
+  function stopVoices(immediate) {
+    if (!actx) { voices = []; return; }
+    const now = actx.currentTime;
+    voices.forEach(({ osc, lfo, g }) => {
+      try {
+        g.gain.cancelScheduledValues(now);
+        g.gain.setValueAtTime(g.gain.value, now);
+        g.gain.linearRampToValueAtTime(0, now + (immediate ? 0.02 : 0.3));
+        osc.stop(now + (immediate ? 0.05 : 0.35));
+        lfo.stop(now + (immediate ? 0.05 : 0.35));
+      } catch { /* already stopped */ }
+    });
+    voices = [];
+  }
 
   // Render the playlist rows.
   PLAYLIST.forEach((track, i) => {
@@ -112,6 +202,7 @@ function render(el, win) {
     timeEl.textContent = '0:00';
     fillEl.style.width = '0%';
     rows.forEach((r, i) => r.classList.toggle('is-active', i === index));
+    if (playing) startVoices();   // retune the pad to the new track
   }
 
   function setPlaying(on) {
@@ -133,9 +224,10 @@ function render(el, win) {
   function start() {
     if (playing) return;
     setPlaying(true);
+    startVoices();          // real audio plays regardless of motion prefs
     if (reducedMotion()) {
-      // No animation loop: advance the fake timer with a 1s tick and draw
-      // a single static visualizer frame.
+      // No animation loop: advance the timer with a 1s tick and draw a
+      // single static visualizer frame. Audio still plays.
       drawViz(false);
       tickId = setInterval(() => { elapsed += 1; updateReadout(); }, 1000);
       return;
@@ -146,6 +238,7 @@ function render(el, win) {
 
   function stop() {
     setPlaying(false);
+    stopVoices(false);
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
     if (tickId) clearInterval(tickId);
@@ -169,9 +262,15 @@ function render(el, win) {
     const bw = (w - gap * (bars.length - 1)) / bars.length;
     const accent = getComputedStyle(el).getPropertyValue('--accent').trim() || '#b6ff3c';
     ctx.fillStyle = accent;
+    // Pull real frequency data from the analyser when audio is running.
+    const live = active && analyser && voices.length;
+    if (live) analyser.getByteFrequencyData(freqData);
     for (let i = 0; i < bars.length; i++) {
-      if (active) {
-        // Decorative pseudo-spectrum: smooth toward a noisy target.
+      if (live) {
+        const bin = freqData[Math.floor(i / bars.length * freqData.length)] / 255;
+        bars[i] += (bin - bars[i]) * 0.45;
+      } else if (active) {
+        // Fallback pseudo-spectrum (no Web Audio available).
         const target = 0.15 + 0.85 * Math.abs(Math.sin(i * 0.7 + performance.now() / 240)) * Math.random();
         bars[i] += (target - bars[i]) * 0.35;
       } else {
@@ -212,11 +311,18 @@ function render(el, win) {
   });
   volInput.addEventListener('input', () => {
     el.querySelector('.player').style.setProperty('--vol', `${volInput.value}%`);
+    if (master && actx) {
+      master.gain.setTargetAtTime(volGain(), actx.currentTime, 0.05);
+    }
   });
 
-  // Clean up the rAF loop when the window closes.
+  // Clean up the rAF loop AND tear down audio when the window closes.
   const origClose = win.close;
-  win.close = () => { stop(); origClose(); };
+  win.close = () => {
+    stop();
+    if (actx) { try { actx.close(); } catch { /* already closed */ } actx = null; }
+    origClose();
+  };
 
   // Init.
   loadTrack();
