@@ -25,6 +25,33 @@
 .app-terminal .term__echo { color: var(--ink-dim); }
 .app-terminal .term__err { color: var(--accent-2); }
 .app-terminal .term__lore { color: var(--accent); }
+.app-terminal .term__matrix { opacity: 0.85; letter-spacing: 2px; }
+
+/* color themes - the JS toggles data-theme on .term. --crt-green is the base
+   ink for the shell; remap it (and the text-shadow tint) per theme. */
+.app-terminal .term[data-theme="amber"] {
+  color: #ffb000;
+  text-shadow: 0 0 4px rgba(255, 176, 0, 0.45);
+}
+.app-terminal .term[data-theme="amber"] .term__prompt,
+.app-terminal .term[data-theme="amber"] .term__input,
+.app-terminal .term[data-theme="amber"] .term__cursor { color: #ffb000; caret-color: #ffb000; }
+
+.app-terminal .term[data-theme="mono"] {
+  color: var(--ink);
+  text-shadow: none;
+}
+.app-terminal .term[data-theme="mono"] .term__prompt,
+.app-terminal .term[data-theme="mono"] .term__input,
+.app-terminal .term[data-theme="mono"] .term__cursor { color: var(--ink); caret-color: var(--ink); }
+
+.app-terminal .term[data-theme="ice"] {
+  color: #7cdfff;
+  text-shadow: 0 0 4px rgba(124, 223, 255, 0.45);
+}
+.app-terminal .term[data-theme="ice"] .term__prompt,
+.app-terminal .term[data-theme="ice"] .term__input,
+.app-terminal .term[data-theme="ice"] .term__cursor { color: #7cdfff; caret-color: #7cdfff; }
 
 .app-terminal .term__line {
   display: flex;
