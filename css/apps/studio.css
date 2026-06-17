@@ -1,0 +1,174 @@
+/* app-studio styles - lightweight DAW (step sequencer). All under .app-studio. */
+
+.app-studio .studio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  height: 100%;
+  padding: var(--gap);
+  box-sizing: border-box;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+/* transport bar */
+.app-studio .studio__transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: var(--gap);
+  border-bottom: 1px solid var(--line);
+}
+.app-studio .studio__spacer { flex: 1; }
+
+.app-studio .studio__btn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--chrome-ink);
+  background: var(--chrome);
+  border: 2px solid var(--bevel-light);
+  border-right-color: var(--bevel-dark);
+  border-bottom-color: var(--bevel-dark);
+  padding: 4px 8px;
+  cursor: pointer;
+  min-width: 34px;
+}
+.app-studio .studio__btn:active {
+  border-color: var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.app-studio .studio__play { color: var(--accent-2); min-width: 44px; }
+.app-studio .studio__btn--ghost {
+  background: var(--bg);
+  color: var(--ink-dim);
+  border-color: var(--line);
+  letter-spacing: 1px;
+}
+.app-studio .studio__btn--ghost:hover { color: var(--ink); }
+
+.app-studio .studio__field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+.app-studio .studio__bpm {
+  width: 52px;
+  background: var(--bg);
+  color: var(--crt-green);
+  border: 1px solid var(--line);
+  font-family: var(--font-sys);
+  font-size: 18px;
+  padding: 1px 4px;
+  text-align: center;
+}
+.app-studio .studio__field--vol { min-width: 0; }
+.app-studio .studio__vol {
+  width: 76px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* sequencer grid */
+.app-studio .studio__grid {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg);
+  border: 2px solid var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+  padding: 6px;
+}
+.app-studio .studio__row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.app-studio .studio__rowhead {
+  flex: 0 0 56px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  padding: 0 6px;
+}
+.app-studio .studio__rowhead.is-muted {
+  color: var(--ink-dim);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.app-studio .studio__cells {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.app-studio .studio__cell {
+  min-height: 26px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.08s linear, box-shadow 0.08s linear;
+}
+.app-studio .studio__cell.is-beat { border-left: 1px solid var(--bevel-dark); background: #181818; }
+.app-studio .studio__cell:hover { background: #2a2a2a; }
+.app-studio .studio__cell.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+}
+.app-studio .studio__row[data-voice="bass"] .studio__cell.is-on,
+.app-studio .studio__row[data-voice="lead"] .studio__cell.is-on {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+.app-studio .studio__cell.is-playhead {
+  box-shadow: inset 0 0 0 2px var(--crt-green);
+}
+.app-studio .studio__cell.is-on.is-playhead {
+  filter: brightness(1.25);
+}
+
+/* oscilloscope */
+.app-studio .studio__meter {
+  background: var(--bg);
+  border: 2px solid var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+  padding: 4px;
+}
+.app-studio .studio__scope {
+  display: block;
+  width: 100%;
+  height: 40px;
+  image-rendering: pixelated;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-studio .studio__cell { transition: none; }
+}
+
+/* Mobile: full-screen sheet. Comfortable tap targets, grid scrolls. */
+@media (max-width: 640px) {
+  .app-studio .studio__btn { min-height: 40px; min-width: 44px; }
+  .app-studio .studio__play { min-width: 52px; }
+  .app-studio .studio__cell { min-height: 30px; }
+  .app-studio .studio__rowhead { flex-basis: 48px; min-height: 30px; }
+  .app-studio .studio__bpm { font-size: 20px; }
+}

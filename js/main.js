@@ -7,6 +7,7 @@ import './apps/files.js';
 import './apps/about.js';
 import './apps/contact.js';
 import './apps/player.js';
+import './apps/studio.js';
 import './apps/eggs/terminal.js';
 import './apps/eggs/guestbook.js';
 import './apps/eggs/notepad.js';
