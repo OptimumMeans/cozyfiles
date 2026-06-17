@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>cozyfiles</title>
+  <meta name="description" content="cozyfiles. a creative studio." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/gate.css" />
+  <link rel="stylesheet" href="css/desktop.css" />
+  <link rel="stylesheet" href="css/window.css" />
+  <link rel="stylesheet" href="css/apps.css" />
+  <link rel="stylesheet" href="css/apps/files.css" />
+  <link rel="stylesheet" href="css/apps/about.css" />
+  <link rel="stylesheet" href="css/apps/contact.css" />
+  <link rel="stylesheet" href="css/apps/player.css" />
+  <link rel="stylesheet" href="css/apps/terminal.css" />
+  <link rel="stylesheet" href="css/apps/guestbook.css" />
+  <link rel="stylesheet" href="css/apps/notepad.css" />
+  <link rel="stylesheet" href="css/apps/recycle.css" />
+</head>
+<body>
+  <!-- scanline / CRT overlay -->
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <!-- THE GATE -->
+  <section id="gate" class="gate" aria-label="enter">
+    <div class="gate__inner">
+      <div class="gate__glyph" data-glitch="cozyfiles">cozyfiles</div>
+      <button id="gate-enter" class="gate__enter" type="button">press enter</button>
+    </div>
+  </section>
+
+  <!-- BOOT -->
+  <section id="boot" class="boot" hidden aria-hidden="true">
+    <pre id="boot-log" class="boot__log"></pre>
+  </section>
+
+  <!-- THE DESKTOP -->
+  <main id="desktop" class="desktop" hidden>
+    <div id="desktop-icons" class="desktop__icons"></div>
+    <div id="windows" class="windows"></div>
+    <div id="taskbar" class="taskbar">
+      <button id="start-btn" class="taskbar__start" type="button">cozyOS</button>
+      <div id="taskbar-items" class="taskbar__items"></div>
+      <div id="taskbar-clock" class="taskbar__clock">--:--</div>
+    </div>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

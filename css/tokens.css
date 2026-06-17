@@ -1,0 +1,52 @@
+/* tokens.css — design system source of truth. Reference these everywhere. */
+:root {
+  /* palette */
+  --bg:        #0a0a0a;
+  --bg-2:      #141414;
+  --panel:     #1b1b1b;
+  --ink:       #e8e6df;   /* bone */
+  --ink-dim:   #8f8d85;
+  --accent:    #b6ff3c;   /* acid lime */
+  --accent-2:  #ff5e3a;   /* warm */
+  --crt-green: #2bff8a;
+  --line:      #3a3a3a;
+
+  /* window chrome (win98-ish bevels) */
+  --chrome:        #c7c3b8;
+  --chrome-ink:    #0a0a0a;
+  --bevel-light:   #f4f1e8;
+  --bevel-dark:    #6b6860;
+  --titlebar:      var(--accent);
+  --titlebar-ink:  #0a0a0a;
+  --titlebar-blur: #4a4a4a;
+
+  /* type */
+  --font-sys:  "VT323", "Courier New", monospace;
+  --font-mono: "Space Mono", "Courier New", monospace;
+  --font-body: "Space Mono", system-ui, sans-serif;
+
+  /* scale */
+  --fs-sys: 22px;
+  --fs-body: 14px;
+  --fs-sm: 12px;
+
+  /* layout */
+  --taskbar-h: 40px;
+  --radius: 0px;
+  --gap: 12px;
+
+  /* z-index bands (WindowManager owns the window band) */
+  --z-desktop: 1;
+  --z-windows: 100;     /* WM assigns 100+ per stack */
+  --z-taskbar: 9000;
+  --z-boot: 9500;
+  --z-gate: 9999;
+  --z-crt: 10000;
+
+  /* motion */
+  --boot-ms: 2000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --boot-ms: 300; }
+}

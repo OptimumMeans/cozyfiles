@@ -1,0 +1,57 @@
+/* window.css — window chrome owned by WindowManager */
+.windows { position: absolute; inset: 0; z-index: var(--z-windows); pointer-events: none; }
+.win {
+  position: absolute; pointer-events: auto;
+  display: flex; flex-direction: column;
+  min-width: 240px; min-height: 160px;
+  background: var(--panel); color: var(--ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+  animation: win-in 0.16s ease-out;
+}
+.win.is-closing { animation: win-out 0.16s ease-in forwards; }
+.win.is-focused { box-shadow: 6px 6px 0 rgba(0,0,0,0.6); }
+
+.win__bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px; cursor: grab; user-select: none;
+  background: var(--titlebar-blur); color: var(--ink);
+  font-family: var(--font-sys); font-size: 18px; letter-spacing: 0.04em;
+}
+.win.is-focused .win__bar { background: var(--titlebar); color: var(--titlebar-ink); }
+.win__bar:active { cursor: grabbing; }
+.win__icon { font-size: 16px; }
+.win__title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.win__controls { display: flex; gap: 4px; }
+.win__btn {
+  width: 22px; height: 20px; line-height: 1;
+  background: var(--chrome); color: var(--chrome-ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  font-family: var(--font-mono); font-size: 13px; font-weight: bold;
+  display: grid; place-items: center; padding: 0;
+}
+.win__btn:active { border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); }
+.win__close:hover { background: var(--accent-2); color: var(--ink); }
+
+.win__body {
+  flex: 1; overflow: auto; padding: 14px;
+  background: var(--bg-2);
+}
+.win__resize {
+  position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--bevel-dark) 50%, var(--bevel-dark) 60%, transparent 60%, transparent 70%, var(--bevel-dark) 70%, var(--bevel-dark) 80%, transparent 80%);
+}
+.win__error { color: var(--accent-2); white-space: pre-wrap; font-family: var(--font-mono); }
+.stub { font-family: var(--font-sys); font-size: 20px; color: var(--ink-dim); }
+
+@keyframes win-in { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes win-out { to { transform: scale(0.96); opacity: 0; } }
+
+@media (max-width: 640px) {
+  .win { box-shadow: none; }
+  .win__resize { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .win, .win.is-closing { animation: none; }
+}

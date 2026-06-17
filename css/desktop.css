@@ -1,0 +1,61 @@
+/* desktop.css — desktop shell, icons, taskbar */
+.desktop {
+  position: fixed; inset: 0; z-index: var(--z-desktop);
+  background:
+    radial-gradient(120% 120% at 20% 0%, #161616 0%, var(--bg) 60%),
+    repeating-linear-gradient(45deg, #0e0e0e 0 14px, #0b0b0b 14px 28px);
+  overflow: hidden;
+}
+
+/* desktop icons */
+.desktop__icons {
+  position: absolute; inset: 0 auto 0 0;
+  padding: 18px; display: flex; flex-direction: column; flex-wrap: wrap;
+  gap: 10px; align-content: flex-start;
+  max-height: calc(100% - var(--taskbar-h)); width: 120px;
+}
+.icon {
+  background: none; border: 1px solid transparent;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 92px; padding: 8px 4px; color: var(--ink); text-align: center;
+}
+.icon:hover, .icon:focus-visible { border-color: var(--accent); outline: none; background: rgba(182,255,60,0.06); }
+.icon__glyph { font-size: 30px; line-height: 1; }
+.icon__label {
+  font-family: var(--font-sys); font-size: 16px; letter-spacing: 0.03em;
+  word-break: break-word;
+}
+
+/* taskbar */
+.taskbar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--taskbar-h);
+  z-index: var(--z-taskbar);
+  display: flex; align-items: stretch; gap: 4px; padding: 4px;
+  background: var(--chrome); color: var(--chrome-ink);
+  border-top: 2px solid var(--bevel-light);
+}
+.taskbar__start {
+  font-family: var(--font-sys); font-size: 20px; padding: 0 14px;
+  background: var(--chrome); color: var(--chrome-ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  font-weight: bold;
+}
+.taskbar__start:active { border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); }
+.taskbar__items { display: flex; gap: 4px; flex: 1; overflow: hidden; }
+.taskitem {
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  background: var(--chrome); color: var(--chrome-ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 0 10px; max-width: 180px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.taskitem.is-focused { border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); background: #b8b4a8; }
+.taskitem.is-min { opacity: 0.65; }
+.taskbar__clock {
+  font-family: var(--font-sys); font-size: 20px; padding: 0 14px;
+  display: grid; place-items: center;
+  border: 2px solid; border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+
+@media (max-width: 640px) {
+  .desktop__icons { flex-direction: row; width: 100%; max-height: none; }
+}

@@ -1,0 +1,66 @@
+/* gate.css — the cryptic gate + boot transition */
+.gate {
+  position: fixed; inset: 0; z-index: var(--z-gate);
+  background: var(--bg);
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.gate__inner { text-align: center; user-select: none; }
+.gate__glyph {
+  font-family: var(--font-sys);
+  font-size: clamp(48px, 14vw, 140px);
+  color: var(--ink);
+  letter-spacing: 0.06em;
+  position: relative;
+  animation: flicker 4.5s infinite steps(1);
+}
+.gate__glyph::before,
+.gate__glyph::after {
+  content: attr(data-glitch);
+  position: absolute; inset: 0;
+  clip-path: inset(0 0 0 0);
+}
+.gate__glyph::before { color: var(--accent-2); animation: glitch-x 3s infinite linear alternate; }
+.gate__glyph::after  { color: var(--accent);   animation: glitch-x 2s infinite linear alternate-reverse; }
+.gate__enter {
+  margin-top: 1.5rem;
+  background: none; border: 1px solid var(--ink-dim);
+  color: var(--ink-dim);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  letter-spacing: 0.3em; text-transform: uppercase;
+  padding: 0.6rem 1.4rem;
+  animation: pulse 2.2s infinite ease-in-out;
+}
+.gate__enter:hover { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.gate.is-leaving { animation: gate-out 0.45s forwards; }
+
+/* boot */
+.boot {
+  position: fixed; inset: 0; z-index: var(--z-boot);
+  background: var(--bg);
+  display: grid; align-items: start;
+  padding: 8vh 6vw;
+}
+.boot__log {
+  font-family: var(--font-sys); font-size: var(--fs-sys);
+  color: var(--crt-green); margin: 0; white-space: pre-wrap;
+  text-shadow: 0 0 6px rgba(43,255,138,0.4);
+}
+.boot.is-done { animation: gate-out 0.35s forwards; }
+
+@keyframes flicker {
+  0%, 92%, 100% { opacity: 1; }
+  93% { opacity: 0.4; } 94% { opacity: 1; } 96% { opacity: 0.7; }
+}
+@keyframes glitch-x {
+  0% { transform: translate(0,0); } 20% { transform: translate(-2px,1px); }
+  40% { transform: translate(2px,-1px); } 60% { transform: translate(-1px,0); }
+  80% { transform: translate(1px,1px); } 100% { transform: translate(0,0); }
+}
+@keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+@keyframes gate-out { to { opacity: 0; visibility: hidden; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gate__glyph, .gate__glyph::before, .gate__glyph::after, .gate__enter { animation: none; }
+  .gate__glyph::before, .gate__glyph::after { display: none; }
+}

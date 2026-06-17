@@ -1,0 +1,36 @@
+/* reset.css — minimal reset + base */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button { font-family: inherit; color: inherit; cursor: pointer; }
+img { max-width: 100%; display: block; }
+[hidden] { display: none !important; }
+::selection { background: var(--accent); color: var(--bg); }
+
+/* CRT / scanline overlay */
+.crt-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: var(--z-crt);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.18) 3px,
+      rgba(0,0,0,0) 4px
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .crt-overlay { opacity: 0.25; }
+}
