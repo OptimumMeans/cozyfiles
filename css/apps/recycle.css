@@ -58,6 +58,44 @@
 .app-recycle .rb__file:hover { background: var(--panel); }
 .app-recycle .rb__file:focus { outline: 1px solid var(--accent); }
 .app-recycle .rb__name { word-break: break-all; }
+
+/* item rows: gag files are a single button; real deleted files get a row
+   with a restore action on the right. */
+.app-recycle .rb__item--real {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.app-recycle .rb__item--real .rb__file {
+  flex: 1;
+  min-width: 0;
+  cursor: default;
+}
+.app-recycle .rb__item--real .rb__file:hover { background: transparent; }
+.app-recycle .rb__from {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.app-recycle .rb__restore {
+  flex: 0 0 auto;
+  margin-right: 8px;
+  background: var(--crt-green);
+  color: var(--chrome-ink);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  font-family: var(--font-sys);
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.app-recycle .rb__restore:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
 .app-recycle .rb__say {
   margin: 0;
   min-height: 1.4em;
@@ -79,4 +117,10 @@
     min-height: 44px;
     padding: 8px 14px;
   }
+  .app-recycle .rb__restore {
+    min-height: 44px;
+    padding: 8px 14px;
+    font-size: 16px;
+  }
+  .app-recycle .rb__from { display: none; }
 }

@@ -1,0 +1,139 @@
+{
+  "folders": [
+    {
+      "id": "projects",
+      "label": "PROJECTS",
+      "glyph": "📂",
+      "files": [
+        {
+          "slug": "chase-atlantic-fillmore",
+          "name": "CHASE_ATLANTIC_FILLMORE.mp4",
+          "title": "Chase Atlantic // Fillmore",
+          "type": ".mp4",
+          "accent": "accent",
+          "kind": "video",
+          "media": "assets/media/chase-atlantic-fillmore.mp4",
+          "poster": "assets/media/chase-atlantic-fillmore.jpg",
+          "blurb": "Recap cut from the Fillmore Minneapolis show."
+        },
+        {
+          "slug": "tiesto",
+          "name": "TIESTO.mp4",
+          "title": "Tiesto",
+          "type": ".mp4",
+          "accent": "accent-2",
+          "kind": "video",
+          "media": "assets/media/tiesto.mp4",
+          "poster": "assets/media/tiesto.jpg",
+          "blurb": "Live visual recap."
+        },
+        {
+          "slug": "cozyfiles-live",
+          "name": "COZYFILES_LIVE.jpg",
+          "title": "Cozyfiles // Live",
+          "type": ".jpg",
+          "accent": "crt-green",
+          "kind": "image",
+          "media": "assets/media/cozyfiles-live.jpg",
+          "blurb": "Still from the floor."
+        },
+        {
+          "slug": "ghost-grid",
+          "name": "GHOST_GRID.jpg",
+          "title": "Ghost Grid",
+          "type": ".jpg",
+          "accent": "accent",
+          "blurb": "A typeface drawn entirely from the gaps between billboards."
+        },
+        {
+          "slug": "paper-saints",
+          "name": "PAPER_SAINTS.mov",
+          "title": "Paper Saints",
+          "type": ".mov",
+          "accent": "accent-2",
+          "blurb": "Stop-motion saints folded from receipts. They blink when you leave the room."
+        },
+        {
+          "slug": "velvet-error",
+          "name": "VELVET_ERROR.psd",
+          "title": "Velvet Error",
+          "type": ".psd",
+          "accent": "crt-green",
+          "blurb": "A poster series for a band that has never agreed to exist."
+        }
+      ]
+    },
+    {
+      "id": "archive",
+      "label": "ARCHIVE",
+      "glyph": "🗃️",
+      "files": [
+        {
+          "slug": "dial-tone-89",
+          "name": "DIAL_TONE_89.jpg",
+          "title": "Dial Tone 89",
+          "type": ".jpg",
+          "accent": "accent",
+          "blurb": "Our first job. Everyone who saw it has since changed their number."
+        },
+        {
+          "slug": "concrete-lullaby",
+          "name": "CONCRETE_LULLABY.mov",
+          "title": "Concrete Lullaby",
+          "type": ".mov",
+          "accent": "accent-2",
+          "blurb": "Shelved campaign for a city that was repaved before it shipped."
+        },
+        {
+          "slug": "untitled-final-2",
+          "name": "UNTITLED_FINAL_v2.psd",
+          "title": "Untitled (final) (2)",
+          "type": ".psd",
+          "accent": "crt-green",
+          "blurb": "We swear this was the last revision. It was not."
+        }
+      ]
+    },
+    {
+      "id": "secrets",
+      "label": "SECRETS",
+      "glyph": "🔒",
+      "locked": true,
+      "files": [
+        {
+          "slug": "do-not-open",
+          "name": "DO_NOT_OPEN.bin",
+          "title": "do_not_open",
+          "type": ".bin",
+          "accent": "accent-2",
+          "cryptic": true,
+          "blurb": "You opened it. Of course you did. There is nothing here yet. Keep watching."
+        },
+        {
+          "slug": "readme-soon",
+          "name": "README_SOON.txt",
+          "title": "readme_soon",
+          "type": ".txt",
+          "accent": "accent",
+          "cryptic": true,
+          "blurb": "Three more files are coming. We have not made them yet. Neither have you."
+        }
+      ]
+    }
+  ],
+  "hidden": [
+    {
+      "folderId": "secrets",
+      "file": {
+        "slug": "you-found-the-floor",
+        "name": "THE_FLOOR.exe",
+        "title": "the_floor",
+        "type": ".bin",
+        "accent": "crt-green",
+        "cryptic": true,
+        "hidden": true,
+        "blurb": "You opened every door in the house. So we left one more. This is the floor under the floor. Stay as long as you like."
+      }
+    }
+  ]
+}
