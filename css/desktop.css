@@ -2,8 +2,15 @@
 .desktop {
   position: fixed; inset: 0; z-index: var(--z-desktop);
   background:
-    radial-gradient(120% 120% at 20% 0%, #161616 0%, var(--bg) 60%),
-    repeating-linear-gradient(45deg, #0e0e0e 0 14px, #0b0b0b 14px 28px);
+    /* faint cube monogram motif (brand) */
+    url(../assets/wallpaper/cubes.svg) center / cover no-repeat,
+    /* vignette so window chrome reads against the edges */
+    radial-gradient(130% 110% at 78% 18%, rgba(182,255,60,0.05) 0%, rgba(10,10,10,0) 45%),
+    radial-gradient(120% 120% at 20% 0%, #18181a 0%, var(--bg) 62%),
+    /* isometric line grid */
+    repeating-linear-gradient(30deg,  rgba(232,230,223,0.035) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(-30deg, rgba(232,230,223,0.035) 0 1px, transparent 1px 46px),
+    var(--bg);
   overflow: hidden;
 }
 
@@ -17,13 +24,14 @@
 .icon {
   background: none; border: 1px solid transparent;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  width: 92px; padding: 8px 4px; color: var(--ink); text-align: center;
+  width: 104px; padding: 8px 4px; color: var(--ink); text-align: center;
 }
 .icon:hover, .icon:focus-visible { border-color: var(--accent); outline: none; background: rgba(182,255,60,0.06); }
 .icon__glyph { font-size: 30px; line-height: 1; }
 .icon__label {
   font-family: var(--font-sys); font-size: 16px; letter-spacing: 0.03em;
-  word-break: break-word;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* taskbar */

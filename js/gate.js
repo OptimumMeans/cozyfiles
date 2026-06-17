@@ -29,8 +29,8 @@ export function runGate() {
 
     window.addEventListener('keydown', onKey);
     enterBtn.addEventListener('click', enter);
-    // hidden hotspot: clicking the glyph also enters
-    gate.querySelector('.gate__glyph').addEventListener('click', enter);
+    // clicking the cube mark also enters
+    gate.querySelector('.gate__mark').addEventListener('click', enter);
   });
 }
 

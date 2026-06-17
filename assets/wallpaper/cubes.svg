@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- one isometric cube, centered at 0,0, radius 100 -->
+    <g id="cube" fill="none" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke">
+      <path d="M0,-100 L86.6,-50 L86.6,50 L0,100 L-86.6,50 L-86.6,-50 Z"
+            vector-effect="non-scaling-stroke"/>
+      <path d="M0,0 L0,-100 M0,0 L-86.6,50 M0,0 L86.6,50"
+            vector-effect="non-scaling-stroke"/>
+    </g>
+  </defs>
+
+  <!-- large ghost cube, off to one side like the AWGE hero -->
+  <use href="#cube" transform="translate(1080 560) scale(3.6)"
+       stroke="#b6ff3c" stroke-opacity="0.10" stroke-width="1.5"/>
+  <use href="#cube" transform="translate(1080 560) scale(2.2)"
+       stroke="#b6ff3c" stroke-opacity="0.07" stroke-width="1.5"/>
+
+  <!-- scattered smaller cubes -->
+  <use href="#cube" transform="translate(220 230) scale(1.15)"
+       stroke="#e8e6df" stroke-opacity="0.06" stroke-width="1.5"/>
+  <use href="#cube" transform="translate(430 880) scale(0.85)"
+       stroke="#e8e6df" stroke-opacity="0.05" stroke-width="1.5"/>
+  <use href="#cube" transform="translate(150 620) scale(0.6)"
+       stroke="#ff5e3a" stroke-opacity="0.06" stroke-width="1.5"/>
+  <use href="#cube" transform="translate(760 360) scale(0.5)"
+       stroke="#e8e6df" stroke-opacity="0.05" stroke-width="1.5"/>
+  <use href="#cube" transform="translate(640 1010) scale(0.7)"
+       stroke="#b6ff3c" stroke-opacity="0.05" stroke-width="1.5"/>
+</svg>

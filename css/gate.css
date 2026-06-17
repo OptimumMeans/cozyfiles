@@ -5,23 +5,36 @@
   display: grid; place-items: center;
   cursor: pointer;
 }
-.gate__inner { text-align: center; user-select: none; }
-.gate__glyph {
-  font-family: var(--font-sys);
-  font-size: clamp(48px, 14vw, 140px);
-  color: var(--ink);
-  letter-spacing: 0.06em;
+.gate__inner { text-align: center; user-select: none; display: grid; justify-items: center; gap: 1.1rem; }
+
+/* the cube monogram, pulled from the cozyfiles logo and used as a tintable
+   alpha mask so it lives in the dark palette with a chromatic glitch */
+.gate__mark {
+  width: clamp(120px, 26vw, 240px);
+  aspect-ratio: 1;
   position: relative;
+  background: var(--ink);
+  -webkit-mask: url(../assets/glyph-mask.png) center / contain no-repeat;
+          mask: url(../assets/glyph-mask.png) center / contain no-repeat;
   animation: flicker 4.5s infinite steps(1);
 }
-.gate__glyph::before,
-.gate__glyph::after {
-  content: attr(data-glitch);
-  position: absolute; inset: 0;
-  clip-path: inset(0 0 0 0);
+.gate__mark::before,
+.gate__mark::after {
+  content: ""; position: absolute; inset: 0;
+  -webkit-mask: url(../assets/glyph-mask.png) center / contain no-repeat;
+          mask: url(../assets/glyph-mask.png) center / contain no-repeat;
+  mix-blend-mode: screen; opacity: 0.9;
 }
-.gate__glyph::before { color: var(--accent-2); animation: glitch-x 3s infinite linear alternate; }
-.gate__glyph::after  { color: var(--accent);   animation: glitch-x 2s infinite linear alternate-reverse; }
+.gate__mark::before { background: var(--accent-2); animation: glitch-x 3s infinite linear alternate; }
+.gate__mark::after  { background: var(--accent);   animation: glitch-x 2s infinite linear alternate-reverse; }
+
+/* wordmark under the cube */
+.gate__word {
+  font-family: var(--font-sys);
+  font-size: clamp(28px, 8vw, 64px);
+  color: var(--ink); letter-spacing: 0.34em; text-indent: 0.34em;
+  text-transform: lowercase;
+}
 .gate__enter {
   margin-top: 1.5rem;
   background: none; border: 1px solid var(--ink-dim);
@@ -61,6 +74,6 @@
 @keyframes gate-out { to { opacity: 0; visibility: hidden; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .gate__glyph, .gate__glyph::before, .gate__glyph::after, .gate__enter { animation: none; }
-  .gate__glyph::before, .gate__glyph::after { display: none; }
+  .gate__mark, .gate__mark::before, .gate__mark::after, .gate__enter { animation: none; }
+  .gate__mark::before, .gate__mark::after { display: none; }
 }
