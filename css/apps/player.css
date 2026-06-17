@@ -160,6 +160,16 @@
   white-space: nowrap;
 }
 .app-player .player__track-time { color: var(--ink-dim); }
+/* STUDIO beats appear in the playlist with a small tag */
+.app-player .player__track-tag {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--chrome-ink);
+  background: var(--crt-green);
+  padding: 0 4px;
+  align-self: center;
+}
+.app-player .player__track.is-beat .player__track-n { color: var(--crt-green); }
 
 .app-player .player__audio { display: none; }
 

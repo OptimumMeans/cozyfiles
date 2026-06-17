@@ -1,18 +1,43 @@
 // player.js - PLAYER (winamp-ish fake media player; no real audio wired yet).
 import { wm, onTap } from '../window-manager.js';
 import { registerApp } from '../desktop.js';
+import {
+  loadSavedBeats, buildSchedule, beatDuration,
+  TRACKS, triggerVoice, secondsPerStep, swingOffset,
+} from './sequencer-store.js';
 
 // Placeholder playlist. No real audio files exist, so each track is a warm
 // generative pad synthesized live via the Web Audio API. `root` is the base
 // note in Hz; `mode` picks the chord tones layered above it. Drop real audio
 // in later by swapping the synth for an <audio> element keyed off these rows.
-const PLAYLIST = [
-  { title: 'untitled (loop.001)',    artist: 'cozyfiles', seconds: 187, root: 110.00, mode: 'minor' }, // A2
-  { title: 'dust on the lens',       artist: 'cozyfiles', seconds: 224, root: 130.81, mode: 'major' }, // C3
-  { title: 'low orbit / no signal',  artist: 'cozyfiles', seconds: 153, root:  98.00, mode: 'sus' },   // G2
-  { title: 'ghost in the cache',     artist: 'cozyfiles', seconds: 201, root: 146.83, mode: 'minor' }, // D3
-  { title: 'after hours (rendered)', artist: 'cozyfiles', seconds: 168, root: 123.47, mode: 'major' }, // B2
+// `kind:'pad'` marks these built-in pads; STUDIO beats are appended at runtime
+// with `kind:'beat'` and synthesized via the shared sequencer engine.
+const PAD_TRACKS = [
+  { kind: 'pad', title: 'untitled (loop.001)',    artist: 'cozyfiles', seconds: 187, root: 110.00, mode: 'minor' }, // A2
+  { kind: 'pad', title: 'dust on the lens',       artist: 'cozyfiles', seconds: 224, root: 130.81, mode: 'major' }, // C3
+  { kind: 'pad', title: 'low orbit / no signal',  artist: 'cozyfiles', seconds: 153, root:  98.00, mode: 'sus' },   // G2
+  { kind: 'pad', title: 'ghost in the cache',     artist: 'cozyfiles', seconds: 201, root: 146.83, mode: 'minor' }, // D3
+  { kind: 'pad', title: 'after hours (rendered)', artist: 'cozyfiles', seconds: 168, root: 123.47, mode: 'major' }, // B2
 ];
+
+// Read saved STUDIO beats and turn each into a playable playlist row. The beat
+// loops; we advertise a tidy "length" (4 cycles) just for the readout/seek.
+function beatTracks() {
+  return loadSavedBeats().map(rec => {
+    const oneCycle = beatDuration(rec.beat) || 4;
+    return {
+      kind: 'beat',
+      title: rec.name,
+      artist: 'STUDIO beat',
+      seconds: Math.max(8, Math.round(oneCycle * 4)),
+      beat: rec.beat,
+    };
+  });
+}
+
+function buildPlaylist() {
+  return [...PAD_TRACKS, ...beatTracks()];
+}
 
 // Chord tone ratios over the root for each mode (root, third, fifth, octave).
 const CHORDS = {
@@ -86,6 +111,7 @@ function render(el, win) {
   const audio = el.querySelector('.player__audio');
   audio.removeAttribute('src');
 
+  let PLAYLIST = buildPlaylist();
   let index = 0;
   let playing = false;
   let elapsed = 0;        // playback position in seconds
@@ -110,7 +136,7 @@ function render(el, win) {
     canvas.height = Math.round(cssH * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // Repaint immediately so a resize while paused does not leave it blank.
-    drawViz(playing && voices.length > 0);
+    drawViz(playing && (voices.length > 0 || !!beatSch));
   }
 
   // ---- Web Audio synth engine -------------------------------------------
@@ -121,6 +147,12 @@ function render(el, win) {
   let analyser = null;    // AnalyserNode -> real visualizer
   let freqData = null;    // Uint8Array of frequency bins
   let voices = [];        // active oscillator/gain nodes for the current track
+
+  // STUDIO-beat playback: a lookahead scheduler that loops the saved pattern.
+  let beatSch = null;     // { schedule, sps, slots, swing, steps, bpm }
+  let beatSlot = 0;
+  let beatNextTime = 0;
+  let beatPumpId = 0;
 
   function volGain() { return Math.pow(volInput.value / 100, 1.6) * 0.5; }
 
@@ -140,11 +172,13 @@ function render(el, win) {
     return true;
   }
 
-  // Build the layered pad for the current track and fade it in.
+  // Build the audio for the current track. Pads layer a chord; STUDIO beats
+  // run the shared step-sequencer engine on a loop.
   function startVoices() {
     if (!ensureAudio()) return;
     stopVoices(true);
     const t = PLAYLIST[index];
+    if (t.kind === 'beat') { startBeat(t); return; }
     const ratios = CHORDS[t.mode] || CHORDS.minor;
     const now = actx.currentTime;
     ratios.forEach((ratio, i) => {
@@ -179,6 +213,7 @@ function render(el, win) {
   }
 
   function stopVoices(immediate) {
+    stopBeat();
     if (!actx) { voices = []; return; }
     const now = actx.currentTime;
     voices.forEach(({ osc, lfo, g }) => {
@@ -193,23 +228,87 @@ function render(el, win) {
     voices = [];
   }
 
-  // Render the playlist rows.
-  PLAYLIST.forEach((track, i) => {
-    const li = document.createElement('li');
-    li.className = 'player__track';
-    li.dataset.i = String(i);
-    li.innerHTML = `
-      <span class="player__track-n">${String(i + 1).padStart(2, '0')}</span>
-      <span class="player__track-title">${track.title}</span>
-      <span class="player__track-time">${fmt(track.seconds)}</span>`;
-    onTap(li, () => {
-      index = i;
-      loadTrack();
-      start();
+  // ---- STUDIO beat scheduler (lookahead pump, looping) ------------------
+  const BEAT_LOOKAHEAD = 25;   // ms between wakeups
+  const BEAT_AHEAD = 0.1;      // s scheduled in advance
+
+  function startBeat(track) {
+    const sch = buildSchedule(track.beat);
+    beatSch = {
+      events: sch.events, slots: sch.slots, steps: sch.steps,
+      bpm: sch.bpm, swing: sch.swing, sps: secondsPerStep(sch.bpm),
+    };
+    beatSlot = 0;
+    beatNextTime = actx.currentTime + 0.06;
+    beatPump();
+  }
+
+  function beatPump() {
+    if (!beatSch || !actx) return;
+    while (beatNextTime < actx.currentTime + BEAT_AHEAD) {
+      const step = beatSlot % beatSch.steps;
+      const t = beatNextTime + swingOffset(step, beatSch.bpm, beatSch.swing);
+      const slot = beatSch.events[beatSlot];
+      slot.forEach(({ r, vel }) => triggerVoice(actx, master, TRACKS[r], t, vel));
+      beatNextTime += beatSch.sps;
+      beatSlot = (beatSlot + 1) % beatSch.slots;   // loop the pattern
+    }
+    beatPumpId = setTimeout(beatPump, BEAT_LOOKAHEAD);
+  }
+
+  function stopBeat() {
+    if (beatPumpId) { clearTimeout(beatPumpId); beatPumpId = 0; }
+    beatSch = null;
+  }
+
+  // Render the playlist rows. Re-runnable so freshly saved STUDIO beats show
+  // up when the window is re-focused without losing the current selection.
+  let rows = [];
+  function renderList() {
+    const current = PLAYLIST[index];
+    listEl.innerHTML = '';
+    PLAYLIST.forEach((track, i) => {
+      const li = document.createElement('li');
+      li.className = 'player__track' + (track.kind === 'beat' ? ' is-beat' : '');
+      li.dataset.i = String(i);
+      const tag = track.kind === 'beat' ? '<span class="player__track-tag">BEAT</span>' : '';
+      li.innerHTML = `
+        <span class="player__track-n">${String(i + 1).padStart(2, '0')}</span>
+        <span class="player__track-title">${escapeHtml(track.title)}</span>
+        ${tag}
+        <span class="player__track-time">${fmt(track.seconds)}</span>`;
+      onTap(li, () => {
+        index = i;
+        loadTrack();
+        start();
+      });
+      listEl.appendChild(li);
     });
-    listEl.appendChild(li);
-  });
-  const rows = [...listEl.querySelectorAll('.player__track')];
+    rows = [...listEl.querySelectorAll('.player__track')];
+    // keep selection pinned to the same track object if it still exists
+    const keep = PLAYLIST.indexOf(current);
+    if (keep >= 0) index = keep;
+    rows.forEach((r, i) => r.classList.toggle('is-active', i === index));
+  }
+
+  // Pull in any beats saved since the window opened, preserving the playing
+  // track. Called when the PLAYER window regains focus.
+  function refreshBeats() {
+    if (playing && PLAYLIST[index] && PLAYLIST[index].kind === 'beat') return; // don't yank a playing beat
+    const playingTrack = PLAYLIST[index];
+    PLAYLIST = buildPlaylist();
+    const keep = playingTrack ? PLAYLIST.findIndex(t => t.title === playingTrack.title && t.kind === playingTrack.kind) : -1;
+    if (keep >= 0) index = keep;
+    else index = Math.min(index, PLAYLIST.length - 1);
+    renderList();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  renderList();
 
   function loadTrack() {
     const t = PLAYLIST[index];
@@ -282,7 +381,7 @@ function render(el, win) {
     const accent = getComputedStyle(el).getPropertyValue('--accent').trim() || '#b6ff3c';
     ctx.fillStyle = accent;
     // Pull real frequency data from the analyser when audio is running.
-    const live = active && analyser && voices.length;
+    const live = active && analyser && (voices.length || beatSch);
     if (live) analyser.getByteFrequencyData(freqData);
     for (let i = 0; i < bars.length; i++) {
       if (live) {
@@ -340,6 +439,17 @@ function render(el, win) {
   window.addEventListener('resize', onWinResize);
   window.addEventListener('orientationchange', onWinResize);
 
+  // Refresh the saved-beat rows whenever the user returns to this window
+  // (e.g. after saving a beat in STUDIO). Pointerdown on the window el fires
+  // before the WM focus handler; a tiny defer keeps it cheap.
+  let refreshQueued = false;
+  const onWinFocus = () => {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    setTimeout(() => { refreshQueued = false; refreshBeats(); }, 0);
+  };
+  win.el.addEventListener('pointerdown', onWinFocus, true);
+
   // Clean up the rAF loop AND tear down audio when the window closes.
   const origClose = win.close;
   win.close = () => {
@@ -347,6 +457,7 @@ function render(el, win) {
     if (ro) { ro.disconnect(); ro = null; }
     window.removeEventListener('resize', onWinResize);
     window.removeEventListener('orientationchange', onWinResize);
+    win.el.removeEventListener('pointerdown', onWinFocus, true);
     if (actx) { try { actx.close(); } catch { /* already closed */ } actx = null; }
     origClose();
   };
