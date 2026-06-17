@@ -1,1 +1,67 @@
 /* app-recycle styles */
+.app-recycle .rb {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--ink);
+}
+.app-recycle .rb__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.app-recycle .rb__count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+.app-recycle .rb__empty {
+  background: var(--accent-2);
+  color: var(--ink);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  font-family: var(--font-sys);
+  font-size: 16px;
+  padding: 2px 12px;
+  cursor: pointer;
+}
+.app-recycle .rb__empty:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.app-recycle .rb__list {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.app-recycle .rb__file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.app-recycle .rb__file:hover { background: var(--panel); }
+.app-recycle .rb__file:focus { outline: 1px solid var(--accent); }
+.app-recycle .rb__name { word-break: break-all; }
+.app-recycle .rb__say {
+  margin: 0;
+  min-height: 1.4em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--accent);
+}

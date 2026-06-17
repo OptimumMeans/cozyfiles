@@ -1,4 +1,4 @@
-// main.js — boot orchestration: gate -> boot -> desktop.
+// main.js - boot orchestration: gate -> boot -> desktop.
 import { runGate } from './gate.js';
 import { initDesktop } from './desktop.js';
 
@@ -11,6 +11,7 @@ import './apps/eggs/terminal.js';
 import './apps/eggs/guestbook.js';
 import './apps/eggs/notepad.js';
 import './apps/eggs/recycle.js';
+import './apps/eggs/secrets.js';
 
 async function start() {
   await runGate();

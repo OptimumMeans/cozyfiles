@@ -1,4 +1,4 @@
-// desktop.js — app registry, desktop icons, taskbar + clock.
+// desktop.js - app registry, desktop icons, taskbar + clock.
 import { wm } from './window-manager.js';
 
 const registry = new Map(); // id -> appCfg

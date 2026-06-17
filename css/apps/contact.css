@@ -1,1 +1,141 @@
-/* app-contact styles */
+/* app-contact styles - namespaced under .app-contact */
+.app-contact .cz {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.app-contact .cz__lead {
+  margin: 0;
+  font-family: var(--font-sys);
+  font-size: var(--fs-sys);
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.app-contact .cz__block { display: flex; flex-direction: column; gap: 6px; }
+
+.app-contact .cz__label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-contact .cz__email {
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  color: var(--crt-green);
+  text-decoration: none;
+  word-break: break-all;
+  border-bottom: 1px dashed var(--line);
+  align-self: flex-start;
+}
+.app-contact .cz__email:hover,
+.app-contact .cz__email:focus-visible { color: var(--accent); border-bottom-color: var(--accent); }
+
+.app-contact .cz__socials {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.app-contact .cz__social {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 5px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--panel);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+}
+.app-contact .cz__social:hover,
+.app-contact .cz__social:focus-visible { color: var(--accent); }
+.app-contact .cz__social:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.app-contact .cz__badge {
+  display: grid;
+  place-items: center;
+  width: 22px; height: 22px;
+  background: var(--accent);
+  color: var(--titlebar-ink);
+  font-weight: bold;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.app-contact .cz__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: var(--gap);
+  border-top: 1px solid var(--line);
+}
+.app-contact .cz__field { display: flex; flex-direction: column; gap: 3px; }
+.app-contact .cz__field > span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+.app-contact .cz__field input,
+.app-contact .cz__field textarea {
+  font-family: var(--font-mono);
+  /* 16px floor stops mobile zoom-jump on focus */
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 2px solid;
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  padding: 6px 8px;
+  width: 100%;
+  resize: vertical;
+}
+.app-contact .cz__field textarea { min-height: 70px; }
+.app-contact .cz__field input:focus,
+.app-contact .cz__field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.app-contact .cz__field input.is-bad,
+.app-contact .cz__field textarea.is-bad {
+  border-color: var(--accent-2);
+}
+
+.app-contact .cz__status {
+  margin: 0;
+  min-height: 1.2em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+.app-contact .cz__status[data-tone="err"] { color: var(--accent-2); }
+.app-contact .cz__status[data-tone="ok"] { color: var(--crt-green); }
+
+.app-contact .cz__send {
+  align-self: flex-start;
+  font-family: var(--font-sys);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  color: var(--titlebar-ink);
+  background: var(--accent);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 4px 16px;
+  cursor: pointer;
+}
+.app-contact .cz__send:hover { background: var(--crt-green); }
+.app-contact .cz__send:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.app-contact .cz__send:disabled { opacity: 0.6; cursor: default; }

@@ -1,4 +1,4 @@
-/* gate.css — the cryptic gate + boot transition */
+/* gate.css - the cryptic gate + boot transition */
 .gate {
   position: fixed; inset: 0; z-index: var(--z-gate);
   background: var(--bg);

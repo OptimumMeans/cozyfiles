@@ -1,4 +1,4 @@
-/* window.css — window chrome owned by WindowManager */
+/* window.css - window chrome owned by WindowManager */
 .windows { position: absolute; inset: 0; z-index: var(--z-windows); pointer-events: none; }
 .win {
   position: absolute; pointer-events: auto;

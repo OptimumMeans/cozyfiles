@@ -1,4 +1,4 @@
-/* reset.css — minimal reset + base */
+/* reset.css - minimal reset + base */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
 body {

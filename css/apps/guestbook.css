@@ -1,1 +1,73 @@
 /* app-guestbook styles */
+.app-guestbook .gb {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 10px;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--ink);
+}
+.app-guestbook .gb__title {
+  margin: 0;
+  font-family: var(--font-sys);
+  font-size: var(--fs-sys);
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+.app-guestbook .gb__list {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.app-guestbook .gb__entry {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.app-guestbook .gb__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+.app-guestbook .gb__who { color: var(--accent); }
+.app-guestbook .gb__at { color: var(--ink-dim); }
+.app-guestbook .gb__text { margin-top: 3px; word-break: break-word; }
+.app-guestbook .gb__empty {
+  padding: 10px;
+  color: var(--ink-dim);
+  font-style: italic;
+}
+
+.app-guestbook .gb__form { display: flex; flex-direction: column; gap: 6px; }
+.app-guestbook .gb__name,
+.app-guestbook .gb__msg {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  padding: 6px 8px;
+  resize: none;
+}
+.app-guestbook .gb__name:focus,
+.app-guestbook .gb__msg:focus { outline: 1px solid var(--accent); }
+.app-guestbook .gb__sign {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--titlebar-ink);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  font-family: var(--font-sys);
+  font-size: 18px;
+  padding: 2px 16px;
+  cursor: pointer;
+}
+.app-guestbook .gb__sign:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}

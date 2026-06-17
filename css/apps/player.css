@@ -1,1 +1,167 @@
-/* app-player styles */
+/* app-player styles - winamp-ish fake media player. All under .app-player. */
+
+.app-player .player {
+  --vol: 70%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  height: 100%;
+  padding: var(--gap);
+  box-sizing: border-box;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+/* display: visualizer + readout + marquee */
+.app-player .player__display {
+  position: relative;
+  background: var(--bg);
+  border: 2px solid var(--bevel-dark);
+  border-top-color: var(--bevel-dark);
+  border-left-color: var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-player .player__viz {
+  display: block;
+  width: 100%;
+  height: 44px;
+  image-rendering: pixelated;
+}
+
+.app-player .player__readout {
+  font-family: var(--font-sys);
+  font-size: var(--fs-sys);
+  line-height: 1;
+  color: var(--crt-green);
+  letter-spacing: 1px;
+}
+.app-player .player__sep { opacity: 0.5; margin: 0 6px; }
+.app-player .player__dur { color: var(--ink-dim); }
+
+.app-player .player__marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+  color: var(--accent);
+}
+.app-player .player__marquee-text {
+  display: inline-block;
+  padding-left: 100%;
+  white-space: pre;
+}
+.app-player .player__marquee.is-running .player__marquee-text {
+  animation: app-player-marquee 9s linear infinite;
+}
+@keyframes app-player-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-200%); }
+}
+
+.app-player .player__now {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.app-player .player__title { color: var(--ink); }
+.app-player .player__artist { color: var(--ink-dim); font-size: 11px; }
+
+/* seek bar (decorative) */
+.app-player .player__seek {
+  height: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.app-player .player__seek-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.2s linear;
+}
+
+/* transport */
+.app-player .player__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-player .player__btn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--chrome-ink);
+  background: var(--chrome);
+  border: 2px solid var(--bevel-light);
+  border-right-color: var(--bevel-dark);
+  border-bottom-color: var(--bevel-dark);
+  padding: 4px 8px;
+  cursor: pointer;
+  min-width: 34px;
+}
+.app-player .player__btn:active {
+  border-color: var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.app-player .player__btn--play { min-width: 44px; color: var(--accent-2); }
+
+.app-player .player__vol {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+.app-player .player__vol-input {
+  width: 70px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* playlist */
+.app-player .player__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.app-player .player__track {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 4px;
+  cursor: pointer;
+  color: var(--ink-dim);
+}
+.app-player .player__track:hover { color: var(--ink); }
+.app-player .player__track.is-active {
+  color: var(--accent);
+  background: var(--bg-2);
+}
+.app-player .player__track-n { color: var(--accent-2); }
+.app-player .player__track-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-player .player__track-time { color: var(--ink-dim); }
+
+.app-player .player__audio { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-player .player__marquee.is-running .player__marquee-text { animation: none; }
+  .app-player .player__seek-fill { transition: none; }
+}

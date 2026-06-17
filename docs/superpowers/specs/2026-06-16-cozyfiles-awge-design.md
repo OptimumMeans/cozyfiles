@@ -1,4 +1,4 @@
-# COZYFILES.US — Design Spec
+# COZYFILES.US - Design Spec
 
 Date: 2026-06-16
 Status: Approved, in build
@@ -8,10 +8,10 @@ Status: Approved, in build
 A creative-studio website wearing the AWGE aesthetic. Cozyfiles is a creative
 studio/collective. The site has two layers:
 
-1. **The Gate** — cryptic, minimal, black. A mysterious front door. A single
+1. **The Gate** - cryptic, minimal, black. A mysterious front door. A single
    glitching glyph/wordmark, ambient flicker, a hidden/implicit way in
    ("press enter" + a clickable hotspot). No nav, no explanation.
-2. **The Desktop** — "entering" plays a short boot/glitch transition into a
+2. **The Desktop** - "entering" plays a short boot/glitch transition into a
    retro desktop OS environment: wallpaper, clickable icons, a taskbar with a
    live clock, and draggable / resizable / focusable / closable windows that
    open as "apps."
@@ -35,7 +35,7 @@ Retro-web meets net-art. Lo-fi, slightly broken on purpose, high-contrast.
   Google fonts (VT323, Space Mono) loaded with `font-display: swap`.
 - Texture: subtle scanline overlay, optional grain, chunky beveled window
   borders (Win98-ish), pixel cursors optional.
-- Motion: glitch transitions, flicker, marquee, blink — used sparingly.
+- Motion: glitch transitions, flicker, marquee, blink - used sparingly.
 
 All tokens live in `css/tokens.css` as CSS custom properties. Everything else
 references them. Do NOT hardcode colors/fonts elsewhere.
@@ -115,14 +115,14 @@ open), renders the taskbar (clock + minimized windows), and exposes
 
 ## Apps (scaffold with tasteful placeholder content)
 
-- **FILES.EXE** — file-explorer window. Left: folder tree (PROJECTS, ARCHIVE,
+- **FILES.EXE** - file-explorer window. Left: folder tree (PROJECTS, ARCHIVE,
   SECRETS). Right: icon grid of "files." Opening a project file opens a viewer
   pane/window with placeholder cover image + blurb. This is the main portfolio.
-- **ABOUT.TXT** — manifesto window: studio story / ethos in cryptic but
+- **ABOUT.TXT** - manifesto window: studio story / ethos in cryptic but
   readable copy. Styled like a text doc.
-- **CONTACT** — email (cameron@cozyfiles.us), socials, and a simple contact
+- **CONTACT** - email (cameron@cozyfiles.us), socials, and a simple contact
   form (no backend yet; mailto or a stubbed handler that fakes a send).
-- **PLAYER** — winamp-ish media player: transport controls, a track title
+- **PLAYER** - winamp-ish media player: transport controls, a track title
   marquee, a fake visualizer (canvas bars). Ships silent/placeholder track;
   real audio dropped in later. Must not autoplay with sound.
 - **Easter eggs (hidden, no desktop icon):**

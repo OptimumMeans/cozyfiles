@@ -1,4 +1,4 @@
-// window-manager.js — the singleton WindowManager. Apps build against wm.open().
+// window-manager.js - the singleton WindowManager. Apps build against wm.open().
 // Owns dragging, resizing, focus/z-stacking, minimize, close, cascade, clamping,
 // and taskbar sync. Apps NEVER touch z-index, position, or the taskbar.
 

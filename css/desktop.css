@@ -1,4 +1,4 @@
-/* desktop.css — desktop shell, icons, taskbar */
+/* desktop.css - desktop shell, icons, taskbar */
 .desktop {
   position: fixed; inset: 0; z-index: var(--z-desktop);
   background:

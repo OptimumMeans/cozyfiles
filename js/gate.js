@@ -1,4 +1,4 @@
-// gate.js — the cryptic gate + boot transition. Resolves when the user enters.
+// gate.js - the cryptic gate + boot transition. Resolves when the user enters.
 
 const BOOT_LINES = [
   'cozyOS v0.1 ......... ok',
