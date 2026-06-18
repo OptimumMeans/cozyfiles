@@ -9,6 +9,8 @@ import './apps/contact.js';
 import './apps/studio.js';
 import './apps/paint.js';
 import './apps/settings.js';
+import './apps/deck.js';
+import './apps/studio-session.js';
 import './apps/eggs/terminal.js';
 import './apps/eggs/guestbook.js';
 import './apps/eggs/notepad.js';

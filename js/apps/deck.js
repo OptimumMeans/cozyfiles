@@ -422,7 +422,9 @@ registerApp({
   id: 'deck',
   name: 'the deck.',
   icon: '▣',
-  desktop: true,
+  // No desktop icon: the deck is reached from inside STUDIO SESSION (media lives
+  // in the DAW). Still registered so openApp('deck') works.
+  desktop: false,
   open: () => wm.open({
     id: 'deck',
     title: 'the deck.',
