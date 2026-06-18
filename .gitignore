@@ -5,6 +5,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Graphify code-graph analysis output (dev tool artifact, not used at runtime)
+graphify-out/
+
 # Large original media (source files); web-optimized versions live in assets/media/
 assets/chase-atlantic-recap-video-fillmoreminneapolis.mp4
 assets/tiestofinalfinal.m4v

@@ -1,0 +1,296 @@
+/* plugin.css — shared plugin-skin layout + hardware primitives (LED, VU).
+   Reuse for the deck, roster, and future plugin-style apps. */
+
+.plugin {
+  --plugin-led-green: #45b058;
+  --plugin-meter-green: #3dba5c;
+  --plugin-meter-amber: #c9a227;
+  --plugin-meter-red: #c43c3c;
+  --plugin-track-audio: #5a7a8a;
+  --plugin-track-video: #6a6a7a;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+/* ── Header: mark + name + version ─────────────────────────────────────── */
+.plugin__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--panel) 88%, var(--chrome)),
+    color-mix(in srgb, var(--panel) 95%, var(--bg))
+  );
+  border-bottom: 1px solid color-mix(in srgb, var(--ink-dim) 35%, transparent);
+  flex-shrink: 0;
+}
+.plugin__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.plugin__mark {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: var(--ink);
+  -webkit-mask: url(../../assets/glyph-mask.png) center / contain no-repeat;
+          mask: url(../../assets/glyph-mask.png) center / contain no-repeat;
+  opacity: 0.88;
+}
+.plugin__name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plugin__version {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  flex-shrink: 0;
+}
+
+/* ── Workspace: rail + main display ────────────────────────────────────── */
+.plugin__workspace {
+  display: grid;
+  grid-template-columns: minmax(108px, 28%) 1fr;
+  flex: 1;
+  min-height: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink-dim) 30%, transparent);
+}
+
+/* patch browser rail */
+.plugin__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg));
+  border-right: 1px solid color-mix(in srgb, var(--ink-dim) 28%, transparent);
+}
+.plugin__patch {
+  display: grid;
+  grid-template-columns: 8px 16px 1fr;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink-dim) 15%, transparent);
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: inherit;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.plugin__patch:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+}
+.plugin__patch:focus-visible {
+  outline: 1px solid var(--ink-dim);
+  outline-offset: -1px;
+}
+.plugin__patch-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plugin__patch-icon {
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+}
+.plugin__patch-icon--audio { color: var(--plugin-track-audio); }
+.plugin__patch-icon--audio::before { content: "∿"; font-size: 11px; }
+.plugin__patch-icon--video { color: var(--plugin-track-video); }
+.plugin__patch-icon--video::before { content: "▶"; font-size: 7px; margin-left: 1px; }
+
+/* main display area */
+.plugin__display {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent 39px,
+      color-mix(in srgb, var(--ink-dim) 10%, transparent) 39px,
+      color-mix(in srgb, var(--ink-dim) 10%, transparent) 40px
+    ),
+    color-mix(in srgb, var(--bg) 94%, var(--panel));
+}
+
+/* ── Transport strip ───────────────────────────────────────────────────── */
+.plugin__transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--panel) 70%, var(--bg));
+  flex-shrink: 0;
+}
+.plugin__play {
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--chrome-ink);
+  background: var(--chrome);
+  border: 2px solid var(--bevel-light);
+  border-right-color: var(--bevel-dark);
+  border-bottom-color: var(--bevel-dark);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.plugin__play:active {
+  border-color: var(--bevel-dark);
+  border-right-color: var(--bevel-light);
+  border-bottom-color: var(--bevel-light);
+}
+.plugin__scrub {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+.plugin__scrub-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink-dim) 35%, transparent);
+  pointer-events: none;
+}
+.plugin__scrub-fill {
+  height: 100%;
+  width: 0%;
+  background: color-mix(in srgb, var(--ink) 55%, var(--ink-dim));
+}
+.plugin__scrub-input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 0;
+  height: 20px;
+  opacity: 0;
+  cursor: pointer;
+}
+.plugin__time {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-sys);
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.plugin__time-sep,
+.plugin__time-remain {
+  color: var(--ink-dim);
+}
+
+/* ── LED (functional color) ────────────────────────────────────────────── */
+.plugin-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ink-dim) 50%, transparent);
+  background: color-mix(in srgb, var(--panel) 80%, var(--bg));
+  opacity: 0.45;
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--bg) 60%, transparent);
+  transition: background 80ms ease, box-shadow 80ms ease, opacity 80ms ease;
+}
+.plugin-led.is-live {
+  background: var(--plugin-led-green);
+  border-color: color-mix(in srgb, var(--plugin-led-green) 80%, #000);
+  opacity: 1;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--plugin-led-green) 50%, transparent);
+}
+
+/* ── VU meter ladder (functional color) ────────────────────────────────── */
+.plugin-vu {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 1px;
+  width: 8px;
+  height: 36px;
+  padding: 2px 1px;
+  border: 1px solid color-mix(in srgb, var(--ink-dim) 35%, transparent);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  flex-shrink: 0;
+}
+.plugin-vu__seg {
+  flex: 1;
+  min-height: 1px;
+  background: color-mix(in srgb, var(--panel) 80%, var(--bg));
+  opacity: 0.35;
+  transition: opacity 40ms linear, background 40ms linear;
+}
+.plugin-vu__seg.is-lit[data-tier="low"] {
+  opacity: 1;
+  background: var(--plugin-meter-green);
+  box-shadow: 0 0 2px color-mix(in srgb, var(--plugin-meter-green) 40%, transparent);
+}
+.plugin-vu__seg.is-lit[data-tier="high"] {
+  opacity: 1;
+  background: var(--plugin-meter-amber);
+}
+.plugin-vu__seg.is-lit[data-tier="peak"] {
+  opacity: 1;
+  background: var(--plugin-meter-red);
+}
+
+@media (max-width: 640px) {
+  .plugin__workspace {
+    grid-template-columns: minmax(96px, 34%) 1fr;
+  }
+  .plugin__patch {
+    min-height: 44px;
+    padding: 8px;
+  }
+  .plugin__play {
+    width: 44px;
+    height: 36px;
+    font-size: 14px;
+  }
+  .plugin__scrub-input {
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plugin-led { transition: none; }
+  .plugin-vu__seg { transition: none; }
+}
