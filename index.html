@@ -19,7 +19,8 @@
   <link rel="stylesheet" href="css/apps/files.css" />
   <link rel="stylesheet" href="css/apps/about.css" />
   <link rel="stylesheet" href="css/apps/contact.css" />
-  <link rel="stylesheet" href="css/apps/player.css" />
+  <link rel="stylesheet" href="css/apps/plugin.css" />
+  <link rel="stylesheet" href="css/apps/deck.css" />
   <link rel="stylesheet" href="css/apps/terminal.css" />
   <link rel="stylesheet" href="css/apps/guestbook.css" />
   <link rel="stylesheet" href="css/apps/notepad.css" />
@@ -29,29 +30,133 @@
   <!-- scanline / CRT overlay -->
   <div class="crt-overlay" aria-hidden="true"></div>
 
-  <!-- THE GATE -->
-  <section id="gate" class="gate" aria-label="enter">
-    <div class="gate__inner">
-      <div class="gate__mark" role="img" aria-label="cozyfiles"></div>
-      <div class="gate__word" data-glitch="cozyfiles">cozyfiles</div>
-      <button id="gate-enter" class="gate__enter" type="button">press enter</button>
+  <!-- THE GATE (minimal boot → one icon → launch) -->
+  <section id="gate" class="gate" aria-label="studio entry">
+    <div class="gate__stage" id="gate-stage">
+      <div class="gate__boot" id="gate-boot" hidden aria-hidden="true">
+        <div class="gate__static" aria-hidden="true"></div>
+      </div>
+
+      <div class="gate__desktop" id="gate-desktop" hidden>
+        <header class="gate__menubar" aria-hidden="true">
+          <div class="gate__menubar-left">
+            <span class="gate__menubar-mark" aria-hidden="true"></span>
+            <span class="gate__menubar-brand">studiocozy.</span>
+          </div>
+          <time class="gate__menubar-clock" id="gate-menubar-clock">--:--</time>
+        </header>
+
+        <div class="gate__wallpaper" aria-hidden="true">
+          <span class="gate__wallpaper-mark"></span>
+        </div>
+
+        <div class="gate__desktop-surface">
+          <button type="button" class="gate__icon" id="gate-launch-icon">
+            <img class="gate__icon-art" src="assets/icons/gate-logo.webp" alt="" aria-hidden="true" width="80" height="80" />
+            <span class="gate__icon-label">studiocozy.</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="gate__launch" id="gate-launch" hidden aria-live="polite">
+        <div class="gate__launch-bar" aria-hidden="true"><span class="gate__launch-fill"></span></div>
+        <p class="gate__launch-status">launching.</p>
+      </div>
+
+      <div class="gate__crt-line" id="gate-crt-line" hidden aria-hidden="true"></div>
     </div>
+
+    <div class="gate__snap" id="gate-snap" hidden aria-hidden="true"></div>
   </section>
 
-  <!-- BOOT -->
-  <section id="boot" class="boot" hidden aria-hidden="true">
-    <pre id="boot-log" class="boot__log"></pre>
-  </section>
-
-  <!-- THE DESKTOP -->
+  <!-- THE DESKTOP (Logic-style session view) -->
   <main id="desktop" class="desktop" hidden>
-    <div id="desktop-icons" class="desktop__icons"></div>
-    <div id="windows" class="windows"></div>
-    <div id="taskbar" class="taskbar">
-      <button id="start-btn" class="taskbar__start" type="button">cozyOS</button>
-      <div id="taskbar-items" class="taskbar__items"></div>
-      <div id="taskbar-clock" class="taskbar__clock">--:--</div>
+    <div class="session" id="session">
+      <header class="session__toolbar" aria-label="session toolbar">
+        <div class="session__tb-cluster session__tb-cluster--left">
+          <div class="session__tb-icon-group" aria-hidden="true">
+            <button type="button" class="session__tb-icon" aria-label="inspector">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.15"/><circle cx="8" cy="6.2" r="2.1" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M5.2 11.2c.6-1.4 1.4-2.1 2.8-2.1s2.2.7 2.8 2.1" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+            </button>
+            <button type="button" class="session__tb-icon" aria-label="preferences">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.15"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <span class="session__tb-divider" aria-hidden="true"></span>
+          <div class="session__tb-icon-group" aria-hidden="true">
+            <button type="button" class="session__tb-icon" aria-label="lists">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9M3.5 8h9M3.5 11.5h6.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><circle cx="12.5" cy="11.5" r=".8" fill="currentColor"/></svg>
+            </button>
+            <button type="button" class="session__tb-icon" aria-label="edit">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 2.8l2.4 2.4-7.2 7.2H3.6V9.2L10.8 2.8z" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linejoin="round"/><path d="M9.6 4l2.4 2.4" stroke="currentColor" stroke-width="1.05"/></svg>
+            </button>
+          </div>
+          <span class="session__toolbar-mark" aria-hidden="true"></span>
+          <span class="session__toolbar-project">studiocozy.</span>
+        </div>
+
+        <div class="session__toolbar-lcd" aria-hidden="true">
+          <span class="session__lcd-time" id="session-toolbar-timecode">01:00:00:00.00</span>
+          <span class="session__lcd-row">
+            <span class="session__lcd-bb">1 1 1 000</span>
+            <span class="session__lcd-tempo">120.0000</span>
+            <span class="session__lcd-sig">4/4</span>
+            <span class="session__lcd-key">C maj.</span>
+          </span>
+        </div>
+
+        <div class="session__tb-cluster session__tb-cluster--right">
+          <div class="session__toolbar-zoom" aria-label="track zoom">
+            <span class="session__zoom-label" aria-hidden="true">zoom</span>
+            <button type="button" id="session-zoom-out" class="session__zoom-btn" aria-label="zoom out tracks">−</button>
+            <input type="range" id="session-zoom-slider" class="session__zoom-slider" min="0" max="100" value="50" aria-label="track row zoom" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" />
+            <button type="button" id="session-zoom-in" class="session__zoom-btn" aria-label="zoom in tracks">+</button>
+          </div>
+          <span class="session__tb-divider" aria-hidden="true"></span>
+          <div class="session__toolbar-tabs" aria-hidden="true">
+            <span class="is-on">Arrange</span><span>Mixer</span><span>Media</span><span>Lists</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="session__workspace">
+        <aside class="session__inspector" id="session-inspector" aria-label="plugins"></aside>
+
+        <div class="session__arrange">
+          <div class="session__ruler" id="session-ruler" aria-hidden="true"></div>
+          <div class="session__stacks" id="session-stacks" role="list"></div>
+        </div>
+
+        <aside class="session__notes" aria-label="session notes">
+          <div class="session__notes-head">
+            <span>notes.</span>
+          </div>
+          <div class="session__notes-body" id="session-notes"></div>
+        </aside>
+      </div>
+
+      <div class="session__narrow-fallback" id="session-narrow-fallback">
+        <p class="session__narrow-msg">please use a wider window.</p>
+        <p class="session__narrow-hint">studiocozy needs at least 1024px width.</p>
+      </div>
     </div>
+
+    <div id="windows" class="windows"></div>
+
+    <footer class="session__transport" id="taskbar">
+      <div class="session__transport-tools" aria-hidden="true">
+        <span class="session__transport-btn"></span>
+        <span class="session__transport-btn"></span>
+        <span class="session__transport-btn session__transport-btn--rec"></span>
+      </div>
+      <button id="start-btn" class="session__transport-home" type="button">cozyOS</button>
+      <div class="session__transport-lcd" aria-hidden="true">
+        <span class="session__transport-tc" id="session-timecode">01:00:00:00.00</span>
+        <span class="session__transport-bb">1 1 1 000</span>
+      </div>
+      <div id="taskbar-items" class="session__transport-windows"></div>
+      <div id="taskbar-clock" class="session__transport-clock">--:--</div>
+    </footer>
   </main>
 
   <script type="module" src="js/main.js"></script>
