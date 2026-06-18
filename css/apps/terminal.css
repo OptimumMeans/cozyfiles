@@ -11,7 +11,7 @@
   font-family: var(--font-mono);
   font-size: var(--fs-body);
   line-height: 1.45;
-  text-shadow: 0 0 4px rgba(43, 255, 138, 0.45);
+  text-shadow: 0 0 4px color-mix(in srgb, var(--crt-green) 45%, transparent);
   box-sizing: border-box;
 }
 

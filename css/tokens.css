@@ -3,20 +3,20 @@
   /* palette */
   --bg:        #0a0a0a;
   --bg-2:      #141414;
-  --panel:     #1b1b1b;
+  --panel:     #1c1c1c;
   --ink:       #e8e6df;   /* bone */
-  --ink-dim:   #8f8d85;
-  --accent:    #b6ff3c;   /* acid lime */
-  --accent-2:  #ff5e3a;   /* warm */
-  --crt-green: #2bff8a;
+  --ink-dim:   #888888;
+  --accent:    #e0e0e0;   /* focus / active states */
+  --accent-2:  #a0a0a0;   /* secondary emphasis */
+  --crt-green: #8e9a92;   /* muted green-gray; terminal / CRT tone */
   --line:      #3a3a3a;
 
   /* window chrome (win98-ish bevels) */
-  --chrome:        #c7c3b8;
+  --chrome:        #c4c4c4;
   --chrome-ink:    #0a0a0a;
-  --bevel-light:   #f4f1e8;
-  --bevel-dark:    #6b6860;
-  --titlebar:      var(--accent);
+  --bevel-light:   #ececec;
+  --bevel-dark:    #5a5a5a;
+  --titlebar:      #d8d8d8;
   --titlebar-ink:  #0a0a0a;
   --titlebar-blur: #4a4a4a;
 
