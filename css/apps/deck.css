@@ -1,0 +1,66 @@
+/* deck.css — "the deck." app-specific styles (extends plugin.css shell) */
+
+.app-deck .win__body {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* waveform display (audio patches) */
+.app-deck .deck__wave-wrap {
+  position: absolute;
+  inset: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--ink-dim) 32%, transparent);
+  background: color-mix(in srgb, var(--panel) 40%, var(--bg));
+  overflow: hidden;
+}
+.app-deck .deck__wave {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.app-deck .deck__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  margin-left: -0.5px;
+  background: var(--ink);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ink) 45%, transparent);
+  pointer-events: none;
+  transition: left 80ms linear;
+}
+
+/* video display */
+.app-deck .deck__video-wrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+}
+.app-deck .deck__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  cursor: pointer;
+}
+.app-deck .deck__video-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.app-deck .deck__video-fallback-label {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-deck .deck__playhead { transition: none; }
+}
