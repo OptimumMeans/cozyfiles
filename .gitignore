@@ -12,3 +12,6 @@ graphify-out/
 assets/chase-atlantic-recap-video-fillmoreminneapolis.mp4
 assets/tiestofinalfinal.m4v
 assets/471721578_18475575736018900_1213162011343136806_n.jpg
+
+# claude code worktrees + local state
+.claude/
