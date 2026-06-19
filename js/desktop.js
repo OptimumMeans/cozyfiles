@@ -21,6 +21,65 @@ const LS = {
   del(key) { try { localStorage.removeItem(key); } catch { /* noop */ } },
 };
 
+/* ---- session restore: remember which windows are open + their geometry ----
+   Persisted as JSON under cozyfiles.desktop.session. On init we reopen those
+   apps and place/size them; on mobile we still reopen but skip geometry (sheets
+   are full-screen). Unknown/removed app ids are dropped. Writes are debounced
+   and only fire on window change events, never in a loop. */
+const SESSION_KEY = 'cozyfiles.desktop.session';
+const SESSION_MAX = 12;            // cap stored windows so a bad state can't bloat
+let restoringSession = false;      // suppress persistence while we reopen windows
+
+function readSession() {
+  const raw = LS.get(SESSION_KEY, null);
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter(e => e && typeof e.id === 'string').slice(0, SESSION_MAX);
+  } catch { return []; }
+}
+
+// Turn the live wm snapshot into the minimal serializable session shape.
+function snapshotToSession(snap) {
+  return snap.slice(0, SESSION_MAX).map(w => ({
+    id: w.id, x: w.x, y: w.y, w: w.w, h: w.h, minimized: !!w.minimized,
+  }));
+}
+
+let saveTimer = null;
+function saveSession(snap) {
+  if (restoringSession) return;          // don't echo our own restore writes
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { LS.set(SESSION_KEY, JSON.stringify(snapshotToSession(snap))); }
+    catch { /* private mode / quota */ }
+  }, 250);
+}
+
+// Reopen the saved windows on boot. Each app self-loads its own params; we only
+// open the window, then restore its placement/size/minimized state.
+function restoreSession() {
+  const entries = readSession();
+  if (!entries.length) return;
+  const mobile = touchLike();
+  restoringSession = true;
+  try {
+    entries.forEach(e => {
+      const app = registry.get(e.id);
+      if (!app) return;                  // app removed/renamed: drop it silently
+      app.open();                        // singleton-safe: re-open just focuses
+      if (!mobile) {
+        wm.setGeometry(e.id, { x: e.x, y: e.y, w: e.w, h: e.h, minimized: e.minimized });
+      } else if (e.minimized && wm.get(e.id)) {
+        wm.get(e.id).minimize();         // keep minimized state on mobile too
+      }
+    });
+  } finally {
+    restoringSession = false;
+  }
+}
+
 /* ---- wallpaper switching (self-contained + namespaced) ----
    Order is: brand cubes (default) -> grid -> acid -> dots -> void -> back.
    Each non-default option maps to a [data-wallpaper] CSS rule in desktop.css.
@@ -192,7 +251,14 @@ export function initDesktop() {
     });
   });
 
+  // persist the open-window set (debounced, change-driven only)
+  wm.onChange(saveSession);
+
   initContextMenu(iconsEl);
+
+  // restore last session first, then honor any deep-link so the linked app
+  // lands focused on top. Both are singleton-safe (re-open just focuses).
+  restoreSession();
   initDeepLinking();
 
   startClock();
@@ -373,14 +439,27 @@ function initStartMenu(startBtn) {
   window.addEventListener('resize', () => { if (!menu.hidden) positionMenu(); });
 }
 
-/* ---- deep-linking: ?app=<id> (and #app=<id>) opens a registered app ---- */
+/* ---- deep-linking ---------------------------------------------------------
+   ?app=<id> (and #app=<id>) opens a registered app by id.
+   ?beat=<code> opens the STUDIO SESSION app; ?file=<slug> opens FILES.
+   The studio-session and files apps self-load their own param off open(); here
+   we only ensure the right app is launched. Unknown ids are ignored. Singleton
+   apps keep this idempotent, so the hashchange re-run never double-opens. */
 function appIdFromLocation() {
   let id = null;
-  try { id = new URLSearchParams(window.location.search).get('app'); } catch { /* noop */ }
+  try {
+    const q = new URLSearchParams(window.location.search);
+    id = q.get('app');
+    // route param-specific deep links to their owning app
+    if (!id && q.has('beat')) id = 'studio-session';
+    if (!id && q.has('file')) id = 'files';
+  } catch { /* noop */ }
   if (!id && window.location.hash) {
     const h = window.location.hash.replace(/^#/, '');
-    const m = /(?:^|[?&])app=([^&]+)/.exec(h);
+    let m = /(?:^|[?&])app=([^&]+)/.exec(h);
     if (m) id = decodeURIComponent(m[1]);
+    else if (/(?:^|[?&])beat=/.test(h)) id = 'studio-session';
+    else if (/(?:^|[?&])file=/.test(h)) id = 'files';
     else if (registry.has(h)) id = h; // bare #studio also works
   }
   return id;

@@ -26,10 +26,41 @@ class WindowManager {
   }
 
   onChange(fn) { this._listeners.add(fn); return () => this._listeners.delete(fn); }
+
+  // Geometry snapshot for one window: rounded pixel rect + minimized flag.
+  // Used by session restore (desktop.js). Returns null for an unknown id.
+  geometry(id) {
+    const w = this.windows.get(id);
+    if (!w) return null;
+    return {
+      x: Math.round(w.el.offsetLeft),
+      y: Math.round(w.el.offsetTop),
+      w: Math.round(w.el.offsetWidth),
+      h: Math.round(w.el.offsetHeight),
+      minimized: !!w.minimized,
+    };
+  }
+
+  // Apply a saved geometry to an open window (no-op on mobile sheets, where
+  // windows are fixed full-screen). Safe to call with partial/odd values.
+  setGeometry(id, g) {
+    const w = this.windows.get(id);
+    if (!w || !g) return;
+    if (MOBILE()) { if (g.minimized) this._minimize(w); return; }
+    if (Number.isFinite(g.x)) w.el.style.left = Math.max(0, g.x) + 'px';
+    if (Number.isFinite(g.y)) w.el.style.top = Math.max(0, g.y) + 'px';
+    if (Number.isFinite(g.w)) w.el.style.width = Math.max(240, g.w) + 'px';
+    if (Number.isFinite(g.h)) w.el.style.height = Math.max(160, g.h) + 'px';
+    this._clamp(w);
+    if (g.minimized) this._minimize(w);
+  }
+
   _emit() {
     const snap = [...this.windows.values()].map(w => ({
       id: w.id, title: w._title, icon: w.icon, minimized: w.minimized,
       focused: w.el.style.zIndex == this.zTop,
+      x: Math.round(w.el.offsetLeft), y: Math.round(w.el.offsetTop),
+      w: Math.round(w.el.offsetWidth), h: Math.round(w.el.offsetHeight),
     }));
     // On mobile, an open (non-minimized) window is a full-screen sheet that
     // should fully cover the desktop icons. Flag it on the desktop so CSS can
