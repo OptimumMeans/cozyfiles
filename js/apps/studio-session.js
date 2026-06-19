@@ -262,7 +262,7 @@ function buildInspector(root) {
     if (fader) makeFaderDraggable(fader, () => strip.fader, applyFader);
   }
 
-  // inserts: the deck (media, opens its window) + openDAW (launch-out, new tab)
+  // inserts: the deck (media, opens its window)
   const list = root.querySelector('#session-plugins');
   if (list) {
     const deckBtn = document.createElement('button');
@@ -278,26 +278,6 @@ function buildInspector(root) {
     deckBtn.append(deckLed, deckLabel);
     onTap(deckBtn, () => openApp('deck'));
     list.appendChild(deckBtn);
-
-    // openDAW - plain launch-out to the real app (cannot be embedded; needs
-    // cross-origin isolation a GitHub Pages parent cannot provide).
-    const odaw = document.createElement('a');
-    odaw.className = 'session__plugin session__plugin--link';
-    odaw.href = 'https://opendaw.studio/';
-    odaw.target = '_blank';
-    odaw.rel = 'noopener noreferrer';
-    odaw.setAttribute('role', 'listitem');
-    odaw.style.setProperty('--plugin-i', '1');
-    const odawLed = createPluginLed({ live: false });
-    const odawLabel = document.createElement('span');
-    odawLabel.className = 'session__plugin-name';
-    odawLabel.textContent = 'openDAW.';
-    const odawOut = document.createElement('span');
-    odawOut.className = 'session__plugin-out';
-    odawOut.setAttribute('aria-hidden', 'true');
-    odawOut.textContent = '↗';
-    odaw.append(odawLed, odawLabel, odawOut);
-    list.appendChild(odaw);
   }
 
   return strip;
