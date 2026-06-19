@@ -10,18 +10,106 @@
   font-size: var(--fs-body);
 }
 
-/* faux notepad menu bar */
+/* notepad menu bar (interactive) */
 .app-about .ab__menu {
   display: flex;
-  gap: var(--gap);
-  padding: 4px 10px;
+  gap: 2px;
+  padding: 2px 6px;
   background: var(--chrome);
   color: var(--chrome-ink);
   font-family: var(--font-sys);
   font-size: var(--fs-sm);
   border-bottom: 1px solid var(--bevel-dark);
   flex: 0 0 auto;
+  position: relative;
+  z-index: 5;
 }
+
+.app-about .ab__menu-item {
+  position: relative;
+}
+
+/* top-level menu buttons */
+.app-about .ab__menu-top {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--chrome-ink);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 3px 9px;
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1.2;
+}
+.app-about .ab__menu-top:hover,
+.app-about .ab__menu-top:focus-visible {
+  background: var(--accent);
+  color: var(--bg-2);
+  outline: none;
+}
+.app-about .ab__menu-top[aria-expanded="true"] {
+  background: var(--accent);
+  color: var(--bg-2);
+  border-color: var(--bevel-dark);
+}
+
+/* dropdown panel */
+.app-about .ab__dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 168px;
+  background: var(--chrome);
+  border: 1px solid var(--bevel-dark);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.35);
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+.app-about .ab__dropdown[hidden] { display: none; }
+
+/* dropdown action rows */
+.app-about .ab__menu-action {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--chrome-ink);
+  font-family: var(--font-sys);
+  font-size: var(--fs-sm);
+  text-align: left;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  border-radius: 2px;
+}
+.app-about .ab__menu-action:hover,
+.app-about .ab__menu-action:focus-visible {
+  background: var(--accent);
+  color: var(--bg-2);
+  outline: none;
+}
+
+/* check column for toggle actions */
+.app-about .ab__check {
+  display: inline-block;
+  width: 1em;
+  flex: 0 0 auto;
+  text-align: center;
+  color: var(--crt-green);
+}
+.app-about .ab__menu-action[aria-checked="true"] .ab__check::before {
+  content: "\2713"; /* check mark */
+}
+.app-about .ab__menu-action[aria-checked="true"]:hover .ab__check,
+.app-about .ab__menu-action[aria-checked="true"]:focus-visible .ab__check {
+  color: var(--bg-2);
+}
+.app-about .ab__action-label { flex: 1 1 auto; }
 
 /* the document surface (scrolls) */
 .app-about .ab__doc {
@@ -94,6 +182,31 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---- Format / View body toggles ---- */
+
+/* Word Wrap off: let lines run and scroll horizontally */
+.app-about .ab__body--nowrap .ab__p,
+.app-about .ab__body--nowrap .ab__list li {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* System font (Format > System Font) */
+.app-about .ab__body--sysfont {
+  font-family: var(--font-sys);
+}
+
+/* Green CRT tint (View > Green CRT Tint) */
+.app-about .ab__body--crt {
+  color: var(--crt-green);
+  text-shadow: 0 0 2px color-mix(in srgb, var(--crt-green) 60%, transparent);
+}
+.app-about .ab__body--crt .ab__p--label,
+.app-about .ab__body--crt .ab__sign,
+.app-about .ab__body--crt .ab__list {
+  color: var(--crt-green);
 }
 
 /* reveal animation: blocks fade up into place */
