@@ -5,6 +5,7 @@ import { wm, onTap } from '../window-manager.js';
 import { registerApp, openApp } from '../desktop.js';
 import { createDawFaderVuRow, createDawKnob } from '../daw-components.js';
 import { createPluginLed, drawIrregularWaveform, setPluginLed } from './plugin-ui.js';
+import { DawEngine, TRACKS as DAW_TRACKS, STEPS as DAW_STEPS } from './daw-engine.js';
 import {
   RELEASE_STACK_URLS,
   fetchSpotifyStackMeta,
@@ -52,6 +53,7 @@ const SESSION_MARKUP = `
           <span class="session__tb-divider" aria-hidden="true"></span>
           <div class="session__toolbar-tabs" id="session-tabs" role="tablist" aria-label="arrange area view">
             <button type="button" class="session__tab is-on" role="tab" data-view="arrange" aria-selected="true">Arrange</button>
+            <button type="button" class="session__tab" role="tab" data-view="studio" aria-selected="false">Studio</button>
             <button type="button" class="session__tab" role="tab" data-view="mixer" aria-selected="false">Mixer</button>
             <button type="button" class="session__tab" role="tab" data-view="media" aria-selected="false">Media</button>
             <button type="button" class="session__tab" role="tab" data-view="lists" aria-selected="false">Lists</button>
@@ -66,6 +68,7 @@ const SESSION_MARKUP = `
           <div class="session__view" id="session-view-arrange" role="tabpanel" data-view="arrange">
             <div class="session__stacks" id="session-stacks" role="list"></div>
           </div>
+          <div class="session__view" id="session-view-studio" role="tabpanel" data-view="studio" hidden></div>
           <div class="session__view" id="session-view-mixer" role="tabpanel" data-view="mixer" hidden></div>
           <div class="session__view" id="session-view-media" role="tabpanel" data-view="media" hidden></div>
           <div class="session__view" id="session-view-lists" role="tabpanel" data-view="lists" hidden></div>
@@ -92,6 +95,10 @@ function render(root, win) {
   const intervals = [];
   // per-render disposers (rAF loops, mixer animations) cleared on tab swap + close
   const disposers = [];
+  // ONE Web Audio engine shared across the Studio sequencer, the Mixer and the
+  // master filter device. Lazily starts its AudioContext on the first user
+  // gesture (Play / step toggle), per browser autoplay rules.
+  const engine = new DawEngine();
 
   buildRuler(root);
   buildInspector(root);
@@ -99,13 +106,17 @@ function render(root, win) {
   buildNotes(root);
   buildSessionZoom(root, session);
   startSessionTimecode(root, intervals);
-  buildToolbarTabs(root, { disposers });
+  buildToolbarTabs(root, { disposers, engine });
+
+  // expose a tiny verification hook (no-op in normal use; headless tests read it)
+  win.el && (win.el.__daw = engine);
 
   // tidy up the timecode ticker + any live view animations when the window closes
   const origClose = win.close;
   win.close = () => {
     intervals.forEach(clearInterval);
     disposers.forEach((fn) => { try { fn(); } catch { /* */ } });
+    try { engine.dispose(); } catch { /* */ }
     origClose();
   };
 }
@@ -130,7 +141,7 @@ function buildToolbarTabs(root, ctx) {
       t.setAttribute('aria-selected', on ? 'true' : 'false');
       t.tabIndex = on ? 0 : -1;
     });
-    ['arrange', 'mixer', 'media', 'lists'].forEach((v) => {
+    ['arrange', 'studio', 'mixer', 'media', 'lists'].forEach((v) => {
       const el = viewEl(v);
       if (!el) return;
       const active = v === name;
@@ -146,7 +157,8 @@ function buildToolbarTabs(root, ctx) {
   }
 
   function buildView(name, el) {
-    if (name === 'mixer') viewHooks.mixer = buildMixerView(el, ctx);
+    if (name === 'studio') viewHooks.studio = buildStudioView(el, ctx);
+    else if (name === 'mixer') viewHooks.mixer = buildMixerView(el, ctx);
     else if (name === 'media') buildMediaView(el);
     else if (name === 'lists') buildListsView(el, root);
   }
@@ -571,97 +583,401 @@ function buildSessionZoom(root, sessionEl) {
   }
 }
 
-/* ── Mixer view ─────────────────────────────────────────────────────────────
-   A small native mixer: a row of channel strips built from the shared DAW
-   components, each fader draggable, VU ladders animated by a parked rAF loop. */
-const MIXER_CHANNELS = [
-  { name: 'drums.', fader: 0.74, base: 7 },
-  { name: 'bass.', fader: 0.68, base: 5 },
-  { name: 'keys.', fader: 0.81, base: 8 },
-  { name: 'vox.', fader: 0.62, base: 6 },
-  { name: 'master.', fader: 0.78, base: 9, master: true },
-];
+/* ── Studio view (step sequencer) ───────────────────────────────────────────
+   A real, audible step sequencer. Drives the shared DawEngine: a transport
+   (play/stop, tempo, swing), a per-track step grid you can toggle, and live
+   one-shot auditioning when you place a step while stopped. Sound is generated
+   by the engine's Web Audio voices and routed through the per-track mixer
+   channels to the master bus, so the Mixer + filter device shape it. */
+function buildStudioView(viewEl, ctx) {
+  const engine = ctx.engine;
+  viewEl.innerHTML = `
+    <div class="session__seq" role="group" aria-label="step sequencer">
+      <div class="session__seq-transport">
+        <button type="button" class="session__seq-btn session__seq-play" data-act="play"
+          aria-label="play" title="play">&#9654;</button>
+        <button type="button" class="session__seq-btn" data-act="stop"
+          aria-label="stop" title="stop">&#9632;</button>
+        <label class="session__seq-field">
+          <span>BPM</span>
+          <input class="session__seq-bpm" type="number" min="60" max="200" value="${engine.bpm}"
+            aria-label="tempo in beats per minute" />
+        </label>
+        <label class="session__seq-field">
+          <span>SWING</span>
+          <input class="session__seq-swing" type="range" min="0" max="60" value="${engine.swing}"
+            aria-label="swing amount percent" />
+          <span class="session__seq-swing-val">${engine.swing}%</span>
+        </label>
+        <span class="session__seq-spacer"></span>
+        <button type="button" class="session__seq-btn session__seq-btn--ghost" data-act="rand"
+          aria-label="randomize pattern" title="randomize">RND</button>
+        <button type="button" class="session__seq-btn session__seq-btn--ghost" data-act="clear"
+          aria-label="clear pattern" title="clear">CLR</button>
+      </div>
+      <div class="session__seq-grid" role="grid" aria-label="steps"></div>
+      <p class="session__seq-hint">// click a cell to toggle. shift-click or right-click cycles accent. drums + bass + lead, live Web Audio.</p>
+    </div>
+  `;
 
+  const gridEl = viewEl.querySelector('.session__seq-grid');
+  const playBtn = viewEl.querySelector('.session__seq-play');
+  const bpmInput = viewEl.querySelector('.session__seq-bpm');
+  const swingInput = viewEl.querySelector('.session__seq-swing');
+  const swingVal = viewEl.querySelector('.session__seq-swing-val');
+  const cells = DAW_TRACKS.map(() => new Array(DAW_STEPS));
+
+  function velLevelClass(v) {
+    if (v <= 0) return 0;
+    if (v >= 0.99) return 3;
+    if (v >= 0.7) return 2;
+    return 1;
+  }
+  function paintCell(r, s) {
+    const cell = cells[r][s];
+    if (!cell) return;
+    const lvl = velLevelClass(engine.grid[r][s]);
+    cell.classList.toggle('is-on', lvl > 0);
+    cell.classList.remove('v1', 'v2', 'v3');
+    if (lvl > 0) cell.classList.add('v' + lvl);
+  }
+
+  DAW_TRACKS.forEach((track, r) => {
+    const row = document.createElement('div');
+    row.className = 'session__seq-row';
+    row.dataset.voice = track.voice;
+
+    const head = document.createElement('span');
+    head.className = 'session__seq-rowhead';
+    head.textContent = track.name;
+    row.appendChild(head);
+
+    const cellWrap = document.createElement('div');
+    cellWrap.className = 'session__seq-cells';
+    for (let s = 0; s < DAW_STEPS; s++) {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'session__seq-cell';
+      if (s % 4 === 0) cell.classList.add('is-beat');
+      cell.dataset.r = String(r);
+      cell.dataset.s = String(s);
+      cell.setAttribute('aria-label', `${track.name} step ${s + 1}`);
+      onTap(cell, (e) => {
+        if (e && e.shiftKey && engine.grid[r][s] > 0) engine.cycleStepVelocity(r, s);
+        else engine.toggleStep(r, s);
+        paintCell(r, s);
+      });
+      cell.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (engine.grid[r][s] > 0) engine.cycleStepVelocity(r, s);
+        else engine.toggleStep(r, s);
+        paintCell(r, s);
+      });
+      cellWrap.appendChild(cell);
+      cells[r][s] = cell;
+    }
+    row.appendChild(cellWrap);
+    gridEl.appendChild(row);
+  });
+  for (let r = 0; r < DAW_TRACKS.length; r++)
+    for (let s = 0; s < DAW_STEPS; s++) paintCell(r, s);
+
+  // playhead: queue scheduled steps, light them at their audio time via rAF
+  const drawQueue = [];
+  let litStep = -1;
+  let rafId = 0;
+  function lightStep(step) {
+    if (step === litStep) return;
+    clearPlayhead();
+    for (let r = 0; r < DAW_TRACKS.length; r++) cells[r][step]?.classList.add('is-playhead');
+    litStep = step;
+  }
+  function clearPlayhead() {
+    if (litStep < 0) return;
+    for (let r = 0; r < DAW_TRACKS.length; r++) cells[r][litStep]?.classList.remove('is-playhead');
+    litStep = -1;
+  }
+  function drawLoop() {
+    if (!engine.playing || !engine.ctx) { rafId = 0; return; }
+    const now = engine.ctx.currentTime;
+    let cur = null;
+    while (drawQueue.length && drawQueue[0].time <= now) cur = drawQueue.shift();
+    if (cur) lightStep(cur.step);
+    rafId = requestAnimationFrame(drawLoop);
+  }
+
+  function setPlayUI(on) {
+    playBtn.innerHTML = on ? '&#10074;&#10074;' : '&#9654;';
+    playBtn.setAttribute('aria-label', on ? 'pause' : 'play');
+    playBtn.classList.toggle('is-playing', on);
+    viewEl.querySelector('.session__seq')?.classList.toggle('is-playing', on);
+  }
+
+  function startTransport() {
+    drawQueue.length = 0;
+    const ok = engine.start((step, time) => drawQueue.push({ step, time }));
+    if (!ok) return;
+    setPlayUI(true);
+    if (!rafId && !reducedMotionSession()) rafId = requestAnimationFrame(drawLoop);
+  }
+  function stopTransport() {
+    engine.stop();
+    setPlayUI(false);
+    drawQueue.length = 0;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    clearPlayhead();
+  }
+
+  onTap(playBtn, () => { engine.playing ? stopTransport() : startTransport(); });
+  onTap(viewEl.querySelector('[data-act="stop"]'), () => stopTransport());
+  onTap(viewEl.querySelector('[data-act="clear"]'), () => {
+    engine.clearGrid();
+    for (let r = 0; r < DAW_TRACKS.length; r++)
+      for (let s = 0; s < DAW_STEPS; s++) paintCell(r, s);
+  });
+  onTap(viewEl.querySelector('[data-act="rand"]'), () => {
+    engine.randomizeGrid();
+    for (let r = 0; r < DAW_TRACKS.length; r++)
+      for (let s = 0; s < DAW_STEPS; s++) paintCell(r, s);
+  });
+  bpmInput.addEventListener('change', () => { bpmInput.value = engine.setBpm(bpmInput.value); });
+  swingInput.addEventListener('input', () => {
+    swingVal.textContent = engine.setSwing(swingInput.value) + '%';
+  });
+
+  // teardown: stop transport + cancel rAF on window close (engine.dispose
+  // closes the context; we just stop our loop + UI here)
+  const teardown = () => { stopTransport(); };
+  ctx.disposers.push(teardown);
+
+  // park = stop the rAF playhead loop while off-tab (transport keeps playing so
+  // audio + meters continue); resume = restart the loop if still playing
+  return {
+    park: () => { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } },
+    resume: () => {
+      setPlayUI(engine.playing);
+      if (engine.playing && !rafId && !reducedMotionSession()) rafId = requestAnimationFrame(drawLoop);
+    },
+  };
+}
+
+/* ── Mixer view ─────────────────────────────────────────────────────────────
+   A real native mixer over the shared DawEngine. One channel strip per
+   sequencer track plus a master strip; faders set real GainNode gain, the pan
+   knob drives a StereoPannerNode, mute/solo work, and the VU ladders are driven
+   by per-channel AnalyserNodes (real RMS while the sequencer plays). The master
+   strip also hosts the BiquadFilter "device" (cutoff + resonance). */
 function buildMixerView(viewEl, ctx) {
+  const engine = ctx.engine;
+  engine.ensureAudio(); // build the graph so faders/meters are live immediately
+
   viewEl.innerHTML = `<div class="session__mixer" role="group" aria-label="mixer"></div>`;
   const board = viewEl.querySelector('.session__mixer');
-  const channels = [];
+  const strips = [];
 
-  MIXER_CHANNELS.forEach((cfg) => {
+  function makeStrip(opts) {
+    const { name, master } = opts;
     const ch = document.createElement('div');
-    ch.className = 'session__mixer-ch' + (cfg.master ? ' is-master' : '');
+    ch.className = 'session__mixer-ch' + (master ? ' is-master' : '');
 
-    const knobWrap = document.createElement('div');
-    knobWrap.className = 'session__mixer-knob';
-    const knob = createDawKnob(0);
-    knob.classList.add('is-interactive');
-    knob.removeAttribute('aria-hidden');
-    knob.setAttribute('role', 'slider');
-    knob.setAttribute('tabindex', '0');
-    knob.setAttribute('aria-label', `${cfg.name} pan`);
-    knobWrap.appendChild(knob);
-    let pan = 0.5;
-    const applyPan = (v) => {
-      pan = Math.max(0, Math.min(1, v));
-      knob.style.setProperty('--knob-rot', `${-135 + pan * 270}deg`);
-    };
-    applyPan(pan);
-    makeKnobDraggable(knob, () => pan, applyPan);
+    // pan knob (master has no pan)
+    if (!master) {
+      const knobWrap = document.createElement('div');
+      knobWrap.className = 'session__mixer-knob';
+      const knob = createDawKnob(0);
+      knob.classList.add('is-interactive');
+      knob.removeAttribute('aria-hidden');
+      knob.setAttribute('role', 'slider');
+      knob.setAttribute('tabindex', '0');
+      knob.setAttribute('aria-label', `${name} pan`);
+      knobWrap.appendChild(knob);
+      let pan = 0.5;
+      const applyPan = (v) => {
+        pan = Math.max(0, Math.min(1, v));
+        knob.style.setProperty('--knob-rot', `${-135 + pan * 270}deg`);
+        knob.setAttribute('aria-valuenow', String(Math.round(pan * 100)));
+        opts.onPan?.(pan);
+      };
+      applyPan(0.5);
+      makeKnobDraggable(knob, () => pan, applyPan);
+      ch.appendChild(knobWrap);
+    } else {
+      const spacer = document.createElement('div');
+      spacer.className = 'session__mixer-knob is-empty';
+      ch.appendChild(spacer);
+    }
 
+    // mute / solo (not on master)
+    if (!master) {
+      const ms = document.createElement('div');
+      ms.className = 'session__mixer-ms';
+      const muteBtn = document.createElement('button');
+      muteBtn.type = 'button';
+      muteBtn.className = 'session__mixer-msbtn session__mixer-mute';
+      muteBtn.textContent = 'M';
+      muteBtn.setAttribute('aria-label', `mute ${name}`);
+      muteBtn.setAttribute('aria-pressed', 'false');
+      onTap(muteBtn, () => {
+        const on = opts.onMute?.();
+        muteBtn.classList.toggle('is-on', on);
+        muteBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      const soloBtn = document.createElement('button');
+      soloBtn.type = 'button';
+      soloBtn.className = 'session__mixer-msbtn session__mixer-solo';
+      soloBtn.textContent = 'S';
+      soloBtn.setAttribute('aria-label', `solo ${name}`);
+      soloBtn.setAttribute('aria-pressed', 'false');
+      onTap(soloBtn, () => {
+        const on = opts.onSolo?.();
+        soloBtn.classList.toggle('is-on', on);
+        soloBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      ms.append(muteBtn, soloBtn);
+      ch.appendChild(ms);
+    }
+
+    // fader + VU
     const channel = document.createElement('div');
     channel.className = 'daw-channel is-live is-interactive';
-    channel.appendChild(createDawFaderVuRow({ vuLevel: cfg.base }));
+    channel.appendChild(createDawFaderVuRow({ vuLevel: 0 }));
     const fader = channel.querySelector('.daw-channel__fader');
     const segs = Array.from(channel.querySelectorAll('.daw-channel__vu-seg'));
-
-    let faderVal = cfg.fader;
+    let faderVal = opts.fader ?? 0.75;
     const applyFader = (v) => {
       faderVal = Math.max(0, Math.min(1, v));
       channel.style.setProperty('--fader-pos', `${faderVal * 100}%`);
       fader?.setAttribute('aria-valuenow', String(Math.round(faderVal * 100)));
-      // the master channel mirrors to the deck master-volume hook
-      if (cfg.master) pushMasterVolume(faderVal);
+      opts.onFader?.(faderVal);
     };
     if (fader) {
       fader.classList.add('is-interactive');
       fader.removeAttribute('aria-hidden');
       fader.setAttribute('role', 'slider');
       fader.setAttribute('tabindex', '0');
-      fader.setAttribute('aria-label', `${cfg.name} fader`);
+      fader.setAttribute('aria-label', `${name} fader`);
       fader.setAttribute('aria-valuemin', '0');
       fader.setAttribute('aria-valuemax', '100');
     }
     applyFader(faderVal);
     if (fader) makeFaderDraggable(fader, () => faderVal, applyFader);
+    ch.appendChild(channel);
 
     const label = document.createElement('span');
     label.className = 'session__mixer-label';
-    label.textContent = cfg.name;
+    label.textContent = name;
+    ch.appendChild(label);
 
-    ch.append(knobWrap, channel, label);
     board.appendChild(ch);
-    channels.push({ cfg, segs, getFader: () => faderVal });
+    strips.push({ segs, level: opts.level });
+  }
+
+  // one strip per track
+  DAW_TRACKS.forEach((track, i) => {
+    const t = engine.tracks[i];
+    makeStrip({
+      name: track.name.toLowerCase() + '.',
+      fader: t ? t.fader : 0.75,
+      onFader: (v) => engine.setTrackFader(i, v),
+      onPan: (v) => engine.setTrackPan(i, v),
+      onMute: () => engine.toggleMute(i),
+      onSolo: () => engine.toggleSolo(i),
+      level: () => engine.trackLevel(i),
+    });
+  });
+  // master strip
+  makeStrip({
+    name: 'master.',
+    master: true,
+    fader: engine.masterFader,
+    onFader: (v) => engine.setMasterFader(v),
+    level: () => engine.masterLevel(),
   });
 
-  // VU animation, parked when the mixer tab is not visible (no leak)
+  // filter device panel on the master bus
+  const device = buildFilterDevice(engine);
+  board.appendChild(device);
+
+  // real VU from analysers; parked off-tab so nothing leaks
   let rafId = 0;
-  let phase = 0;
   const tick = () => {
-    phase += 0.08;
-    channels.forEach(({ cfg, segs, getFader }, i) => {
-      const wobble = (Math.sin(phase + i * 1.3) + Math.sin(phase * 2.1 + i)) * 0.25 + 0.5;
-      const level = Math.round((cfg.base * 0.5 + wobble * segs.length * 0.6) * getFader());
-      segs.forEach((seg, s) => seg.classList.toggle('is-lit', s < level));
+    strips.forEach(({ segs, level }) => {
+      const lvl = Math.round((level ? level() : 0) * segs.length);
+      segs.forEach((seg, s) => seg.classList.toggle('is-lit', s < lvl));
     });
     rafId = requestAnimationFrame(tick);
   };
   const resume = () => { if (!rafId && !reducedMotionSession()) rafId = requestAnimationFrame(tick); };
   const park = () => { if (rafId) cancelAnimationFrame(rafId); rafId = 0; };
-
-  // register park as a disposer so window close also stops it
   ctx.disposers.push(park);
   resume();
   return { resume, park };
+}
+
+/* ── Filter device ──────────────────────────────────────────────────────────
+   A small openDAW-inspired device panel on the master bus: a BiquadFilter with
+   cutoff + resonance knobs that audibly shape the whole mix, plus a bypass LED.
+   Returns the panel element (mounted into the mixer board). */
+function buildFilterDevice(engine) {
+  const panel = document.createElement('div');
+  panel.className = 'session__device';
+  panel.innerHTML = `
+    <div class="session__device-head">
+      <button type="button" class="session__device-power" aria-pressed="true" aria-label="filter bypass"></button>
+      <span class="session__device-name">lowpass.</span>
+    </div>
+    <div class="session__device-knobs"></div>
+    <div class="session__device-readout" aria-hidden="true"></div>
+  `;
+  const knobRow = panel.querySelector('.session__device-knobs');
+  const readout = panel.querySelector('.session__device-readout');
+  const power = panel.querySelector('.session__device-power');
+
+  function updateReadout() {
+    const hz = engine.filterCutoffHz();
+    const hzLabel = hz >= 1000 ? `${(hz / 1000).toFixed(1)}k` : `${Math.round(hz)}`;
+    readout.textContent = `${hzLabel}Hz  Q${engine.filterQ().toFixed(1)}`;
+  }
+
+  const mkKnob = (label, getVal, setVal) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'session__device-knob';
+    const knob = createDawKnob(0);
+    knob.classList.add('is-interactive');
+    knob.removeAttribute('aria-hidden');
+    knob.setAttribute('role', 'slider');
+    knob.setAttribute('tabindex', '0');
+    knob.setAttribute('aria-label', label);
+    const cap = document.createElement('span');
+    cap.className = 'session__device-knob-label';
+    cap.textContent = label;
+    wrap.append(knob, cap);
+    const apply = (v) => {
+      const cl = Math.max(0, Math.min(1, v));
+      setVal(cl);
+      knob.style.setProperty('--knob-rot', `${-135 + cl * 270}deg`);
+      knob.setAttribute('aria-valuenow', String(Math.round(cl * 100)));
+      updateReadout();
+    };
+    apply(getVal());
+    makeKnobDraggable(knob, getVal, apply);
+    return wrap;
+  };
+
+  knobRow.appendChild(mkKnob('cutoff',
+    () => engine.filter.cutoff, (v) => engine.setFilterCutoff(v)));
+  knobRow.appendChild(mkKnob('res',
+    () => engine.filter.resonance, (v) => engine.setFilterResonance(v)));
+  updateReadout();
+
+  onTap(power, () => {
+    const on = !engine.filter.on;
+    engine.setFilterEnabled(on);
+    power.setAttribute('aria-pressed', on ? 'true' : 'false');
+    panel.classList.toggle('is-bypassed', !on);
+  });
+
+  return panel;
 }
 
 function reducedMotionSession() {
