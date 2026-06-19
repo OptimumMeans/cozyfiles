@@ -61,6 +61,15 @@ class WindowManager {
     if (Number.isFinite(g.w)) w.el.style.width = Math.max(240, g.w) + 'px';
     if (Number.isFinite(g.h)) w.el.style.height = Math.max(160, g.h) + 'px';
     this._clamp(w);
+    // Seed the rect cache from the restored geometry BEFORE minimizing, so a
+    // window restored straight into a minimized state still persists its real
+    // placement on the next session save (a hidden element reports offset 0).
+    w._rect = {
+      x: Math.round(Number.isFinite(g.x) ? Math.max(0, g.x) : w.el.offsetLeft),
+      y: Math.round(Number.isFinite(g.y) ? Math.max(0, g.y) : w.el.offsetTop),
+      w: Math.round(Number.isFinite(g.w) ? Math.max(240, g.w) : w.el.offsetWidth),
+      h: Math.round(Number.isFinite(g.h) ? Math.max(160, g.h) : w.el.offsetHeight),
+    };
     if (g.minimized) this._minimize(w);
   }
 

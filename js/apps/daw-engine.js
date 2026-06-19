@@ -581,7 +581,8 @@ export class DawEngine {
     const cycleDur = STEPS * sps;
     const total = cycleDur * cycles + tail;
     const sampleRate = 44100;
-    const ctx = new OAC(1, Math.ceil(total * sampleRate), sampleRate);
+    // stereo so the export honors per-track pan, matching what you hear
+    const ctx = new OAC(2, Math.ceil(total * sampleRate), sampleRate);
 
     // Rebuild the LIVE signal chain offline so the export matches the mix.
     // Routing every voice straight into one master (the old way) dropped the
@@ -605,8 +606,14 @@ export class DawEngine {
       const audible = t.mute ? false : (anySolo ? !!t.solo : true);
       const g = ctx.createGain();
       g.gain.value = audible ? this._faderToGain(t.fader ?? 0.75) : 0;
-      g.connect(filter);
-      return g;
+      if (ctx.createStereoPanner) {
+        const pan = ctx.createStereoPanner();
+        pan.pan.value = ((t.panValue ?? 0.5) - 0.5) * 2;
+        g.connect(pan).connect(filter);
+      } else {
+        g.connect(filter);
+      }
+      return g; // voices trigger into the per-track gain (head of the chain)
     });
 
     for (let c = 0; c < cycles; c++) {
