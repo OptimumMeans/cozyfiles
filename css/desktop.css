@@ -73,6 +73,41 @@
   .ctx-menu__item { padding: 12px 18px 12px 12px; min-height: 44px; }
 }
 
+/* Start menu (cozyOS button popup). Shares the win98 ctx-menu look but anchors
+   above the taskbar and gets a brand strip + a touch of breathing room. Built
+   dynamically in desktop.js (no markup in index.html). */
+.start-menu {
+  position: absolute; z-index: calc(var(--z-taskbar) + 1); min-width: 184px;
+  background: var(--chrome); color: var(--chrome-ink);
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding: 3px; box-shadow: 3px -3px 0 rgba(0,0,0,0.45);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  user-select: none; max-height: 70vh; overflow-y: auto;
+}
+.start-menu[hidden] { display: none; }
+.start-menu__brand {
+  font-family: var(--font-sys); font-weight: bold; letter-spacing: 0.06em;
+  font-size: 18px; padding: 8px 10px; margin: 0 0 3px;
+  color: var(--bg); background: var(--accent);
+  border: 1px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+}
+.start-menu__item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; color: inherit; text-align: left;
+  padding: 7px 18px 7px 10px; font: inherit; white-space: nowrap;
+}
+.start-menu__item:hover, .start-menu__item:focus-visible {
+  background: var(--accent); color: var(--titlebar-ink); outline: none;
+}
+.start-menu__glyph { width: 22px; text-align: center; font-size: 18px; }
+.start-menu__sep { height: 0; border-top: 1px solid var(--bevel-dark);
+  border-bottom: 1px solid var(--bevel-light); margin: 3px 2px; }
+
+@media (max-width: 640px) {
+  .start-menu { min-width: 220px; }
+  .start-menu__item { padding: 12px 18px 12px 12px; min-height: 44px; }
+}
+
 /* desktop icons - kept below the window band so open windows cover them */
 .desktop__icons {
   position: absolute; inset: 0 auto 0 0; z-index: var(--z-desktop);
@@ -97,6 +132,28 @@
    flex flow already auto-arranges; this class just guarantees a clean reset. */
 .desktop__icons.is-arranged {
   flex-direction: column; flex-wrap: nowrap; align-content: flex-start;
+}
+
+/* Free-position mode: once any icon is dragged the layer spans the full desktop
+   and individual icons are absolutely placed via inline left/top. Icons without
+   a saved spot stay in the default flow (still visible, top-left). */
+.desktop__icons.is-free {
+  inset: 0; width: auto; max-height: calc(100% - var(--taskbar-h));
+}
+.icon { cursor: grab; touch-action: none; }
+.icon.is-placed { position: absolute; margin: 0; }
+.icon.is-dragging { cursor: grabbing; opacity: 0.85; z-index: 5; }
+
+/* brief flash so "Arrange icons" always reads, even if nothing had moved */
+@keyframes icons-arrange-flash {
+  0% { transform: translateY(-6px); opacity: 0.4; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.desktop__icons.just-arranged .icon {
+  animation: icons-arrange-flash 0.32s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .desktop__icons.just-arranged .icon { animation: none; }
 }
 
 /* taskbar */
@@ -141,12 +198,18 @@
 }
 
 @media (max-width: 640px) {
-  .desktop__icons {
-    flex-direction: row; flex-wrap: wrap; width: 100%; max-height: none;
+  .desktop__icons,
+  .desktop__icons.is-free {
+    flex-direction: row; flex-wrap: wrap; width: 100%; max-height: none; inset: auto;
     padding-left: calc(18px + env(safe-area-inset-left, 0px));
     padding-right: calc(18px + env(safe-area-inset-right, 0px));
     padding-top: calc(18px + env(safe-area-inset-top, 0px));
   }
+  /* drag is disabled on touch; ignore any desktop-saved free positions here */
+  .desktop__icons .icon.is-placed {
+    position: static; left: auto !important; top: auto !important;
+  }
+  .icon { cursor: pointer; }
   /* a full-screen window sheet must fully cover the icons */
   .desktop.has-open-window .desktop__icons { display: none; }
 
