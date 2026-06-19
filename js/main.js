@@ -6,7 +6,6 @@ import { initDesktop } from './desktop.js';
 import './apps/files.js';
 import './apps/about.js';
 import './apps/contact.js';
-import './apps/studio.js';
 import './apps/paint.js';
 import './apps/settings.js';
 import './apps/deck.js';

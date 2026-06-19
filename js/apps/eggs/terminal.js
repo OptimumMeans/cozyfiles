@@ -43,7 +43,7 @@ const LORE = [
 ];
 
 // apps the `open` command can launch. ids must match the desktop registry.
-const OPENABLE = ['files', 'about', 'contact', 'studio', 'paint',
+const OPENABLE = ['files', 'about', 'contact', 'paint',
                   'guestbook', 'notepad', 'recycle', 'terminal'];
 
 // available terminal color themes (className toggled on the term root)
