@@ -254,6 +254,16 @@
 .app-contact .mz__field input.is-bad,
 .app-contact .mz__field textarea.is-bad { border-color: var(--accent-2); }
 
+/* honeypot: off-screen, untabbable, invisible to people but present for bots.
+   display:none is avoided since some bots skip it; this keeps it in the DOM. */
+.app-contact .mz__hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .app-contact .mz__status {
   margin: 0;
   min-height: 1.2em;

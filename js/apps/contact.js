@@ -9,6 +9,51 @@ const EMAIL = 'cameron@cozyfiles.us';
 // localStorage keys (per the house convention: cozyfiles.mail.*)
 const LS_READ = 'cozyfiles.mail.read';   // array of seeded-mail ids marked read
 const LS_SENT = 'cozyfiles.mail.sent';   // array of {id,to,subject,body,date}
+const LS_ENDPOINT = 'cozyfiles.contact.endpoint'; // optional form POST target
+
+// --- HOW TO ENABLE REAL FORM DELIVERY -------------------------------------
+// This site has no backend. By default COMPOSE hands off to the visitor's
+// mail app (mailto:). To capture submissions to an inbox/sheet instead, set a
+// POST endpoint. Two ways:
+//   1. Edit DEFAULT_FORM_ENDPOINT below to a Formspree form URL, e.g.
+//        'https://formspree.io/f/abcdwxyz'
+//      (or any worker/serverless URL that accepts JSON or form-encoded POST).
+//   2. Or, with no code change, set it from the browser console:
+//        localStorage.setItem('cozyfiles.contact.endpoint', 'https://formspree.io/f/abcdwxyz')
+//      The localStorage value wins over the constant.
+// On a successful POST the form clears and shows a confirmation. If no endpoint
+// is set, or the POST fails for any reason, COMPOSE falls back to mailto: so a
+// message is never lost. The endpoint must allow CORS POST from this origin.
+const DEFAULT_FORM_ENDPOINT = '';
+
+// Resolve the active endpoint: localStorage override first, then the constant.
+function getFormEndpoint() {
+  let stored = '';
+  try { stored = (localStorage.getItem(LS_ENDPOINT) || '').trim(); } catch { /* blocked */ }
+  return stored || DEFAULT_FORM_ENDPOINT.trim();
+}
+
+// Loose but useful email shape check (mirrors what the browser would accept).
+function looksLikeEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+// POST the message to the configured endpoint. Returns true on a 2xx response.
+// Sends JSON; if a Formspree-style URL is detected, also include the fields
+// flat so Formspree maps them. Any network/CORS/HTTP error returns false so the
+// caller can fall back to mailto:.
+async function postToEndpoint(endpoint, payload) {
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch {
+    return false; // offline, CORS, DNS, anything: caller handles fallback
+  }
+}
 
 // Placeholder social links. Owner swaps the href="#" values for real profiles.
 const SOCIALS = [
@@ -270,6 +315,13 @@ function render(contentEl) {
           <textarea name="message" rows="6" maxlength="2000"></textarea>
         </label>
 
+        <!-- honeypot: hidden from people, tempting to bots. real visitors leave it empty. -->
+        <div class="mz__hp" aria-hidden="true">
+          <label>do not fill this in
+            <input type="text" name="website" tabindex="-1" autocomplete="off" />
+          </label>
+        </div>
+
         <p class="mz__status" role="status" aria-live="polite"></p>
         <div class="mz__formactions">
           <button type="submit" class="mz__send">SEND &gt;</button>
@@ -299,6 +351,7 @@ function render(contentEl) {
       subject: form.querySelector('[name="subject"]'),
       message: form.querySelector('[name="message"]'),
     };
+    const honeypot = form.querySelector('[name="website"]');
 
     Object.values(fields).forEach(f => {
       f.addEventListener('input', () => f.classList.remove('is-bad'));
@@ -308,12 +361,31 @@ function render(contentEl) {
     onTap(form.querySelector('.mz__cancel'), backToList);
     onTap(form.querySelector('.mz__back'), backToList);
 
-    form.addEventListener('submit', (e) => {
+    // Open the visitor's mail app addressed to us. Used as the no-endpoint
+    // path and as the graceful fallback whenever a POST cannot go through.
+    function openMailto(subjectLine, bodyLines) {
+      const href = `mailto:${EMAIL}`
+        + `?subject=${encodeURIComponent(subjectLine)}`
+        + `&body=${encodeURIComponent(bodyLines)}`;
+      try { window.location.href = href; } catch { /* popup blocked; copy still in Sent */ }
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = fields.name.value.trim();
       const email = fields.email.value.trim();
       const subject = fields.subject.value.trim();
       const message = fields.message.value.trim();
+
+      // Honeypot: a real person never fills the hidden field. If it has a
+      // value, silently pretend success and drop the message (no POST, no Sent).
+      if (honeypot && honeypot.value.trim() !== '') {
+        status.dataset.tone = 'ok';
+        status.textContent = 'sent. thanks.';
+        sendBtn.disabled = true;
+        setTimeout(() => { composing = false; selectFolder('inbox'); }, 700);
+        return;
+      }
 
       // name, email, message are required; subject can default.
       let bad = false;
@@ -327,15 +399,21 @@ function render(contentEl) {
         status.textContent = 'name, email, and message are required.';
         return;
       }
+      // email must look like an address so replies actually reach you.
+      if (!looksLikeEmail(email)) {
+        fields.email.classList.add('is-bad');
+        status.dataset.tone = 'err';
+        status.textContent = 'that email does not look right. check it?';
+        return;
+      }
 
       sendBtn.disabled = true;
-      status.dataset.tone = 'ok';
-      status.textContent = 'routing to your mail app...';
 
       const subjectLine = subject || `hello from ${name}`;
       const bodyLines = [message, '', '---', `from: ${name} <${email}>`].join('\n');
 
-      // Record into the persisted Sent folder so it feels real.
+      // Record into the persisted Sent folder so it feels real, regardless of
+      // which delivery path runs below.
       const sentList = loadSent();
       sentList.push({
         id: 'sent-' + Date.now(),
@@ -346,17 +424,42 @@ function render(contentEl) {
       });
       saveSent(sentList);
 
-      // No backend: hand off to the visitor's mail client via mailto:.
-      const href = `mailto:${EMAIL}`
-        + `?subject=${encodeURIComponent(subjectLine)}`
-        + `&body=${encodeURIComponent(bodyLines)}`;
-      try { window.location.href = href; } catch { /* popup blocked; copy still in Sent */ }
+      const endpoint = getFormEndpoint();
 
-      status.textContent = 'sent. saved a copy to SENT.';
+      if (endpoint) {
+        // Try a real backend submission first.
+        status.dataset.tone = 'ok';
+        status.textContent = 'sending...';
+        const ok = await postToEndpoint(endpoint, {
+          name, email,
+          subject: subjectLine,
+          message,
+          // common aliases so Formspree / generic handlers map cleanly
+          _subject: subjectLine,
+          _replyto: email,
+        });
+        if (ok) {
+          status.dataset.tone = 'ok';
+          status.textContent = 'sent. saved a copy to SENT.';
+          form.reset();
+          setTimeout(() => { composing = false; selectFolder('sent'); }, 700);
+          return;
+        }
+        // POST failed: fall through to mailto: so the message still gets out.
+        status.dataset.tone = 'err';
+        status.textContent = 'send failed, opening your mail app instead...';
+      } else {
+        status.dataset.tone = 'ok';
+        status.textContent = 'routing to your mail app...';
+      }
+
+      // No endpoint, or POST failed: hand off to the visitor's mail client.
+      openMailto(subjectLine, bodyLines);
+      status.textContent = 'opened your mail app. saved a copy to SENT.';
       setTimeout(() => {
         composing = false;
         selectFolder('sent');
-      }, 700);
+      }, 900);
     });
   }
 
