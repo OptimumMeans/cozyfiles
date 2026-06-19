@@ -27,18 +27,27 @@ class WindowManager {
 
   onChange(fn) { this._listeners.add(fn); return () => this._listeners.delete(fn); }
 
+  // Last-known VISIBLE rect. A minimized window is hidden and reports
+  // offset* === 0, so we cache geometry whenever the window is visible and
+  // reuse the cache while it is minimized. Without this, session restore would
+  // save 0,0,0,0 for any minimized window and bring it back tiny in the corner.
+  _liveRect(w) {
+    if (!w.el.hidden && w.el.offsetWidth > 0) {
+      w._rect = {
+        x: Math.round(w.el.offsetLeft), y: Math.round(w.el.offsetTop),
+        w: Math.round(w.el.offsetWidth), h: Math.round(w.el.offsetHeight),
+      };
+    }
+    return w._rect || { x: 0, y: 0, w: 0, h: 0 };
+  }
+
   // Geometry snapshot for one window: rounded pixel rect + minimized flag.
   // Used by session restore (desktop.js). Returns null for an unknown id.
   geometry(id) {
     const w = this.windows.get(id);
     if (!w) return null;
-    return {
-      x: Math.round(w.el.offsetLeft),
-      y: Math.round(w.el.offsetTop),
-      w: Math.round(w.el.offsetWidth),
-      h: Math.round(w.el.offsetHeight),
-      minimized: !!w.minimized,
-    };
+    const r = this._liveRect(w);
+    return { x: r.x, y: r.y, w: r.w, h: r.h, minimized: !!w.minimized };
   }
 
   // Apply a saved geometry to an open window (no-op on mobile sheets, where
@@ -56,12 +65,14 @@ class WindowManager {
   }
 
   _emit() {
-    const snap = [...this.windows.values()].map(w => ({
-      id: w.id, title: w._title, icon: w.icon, minimized: w.minimized,
-      focused: w.el.style.zIndex == this.zTop,
-      x: Math.round(w.el.offsetLeft), y: Math.round(w.el.offsetTop),
-      w: Math.round(w.el.offsetWidth), h: Math.round(w.el.offsetHeight),
-    }));
+    const snap = [...this.windows.values()].map(w => {
+      const r = this._liveRect(w);
+      return {
+        id: w.id, title: w._title, icon: w.icon, minimized: w.minimized,
+        focused: w.el.style.zIndex == this.zTop,
+        x: r.x, y: r.y, w: r.w, h: r.h,
+      };
+    });
     // On mobile, an open (non-minimized) window is a full-screen sheet that
     // should fully cover the desktop icons. Flag it on the desktop so CSS can
     // hide the icon layer. Harmless on desktop (the class only does work in the

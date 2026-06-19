@@ -10,6 +10,8 @@ import './apps/paint.js';
 import './apps/settings.js';
 import './apps/deck.js';
 import './apps/studio-session.js';
+import './apps/radio.js';
+import './apps/credits.js';
 import './apps/eggs/terminal.js';
 import './apps/eggs/guestbook.js';
 import './apps/eggs/notepad.js';
@@ -25,3 +27,9 @@ async function start() {
 }
 
 start();
+
+// PWA: register the service worker so the desktop installs + boots offline.
+// Relative './sw.js' keeps the scope correct under the GitHub Pages subpath.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}

@@ -85,8 +85,11 @@ function restoreSession() {
    Each non-default option maps to a [data-wallpaper] CSS rule in desktop.css.
    "cubes" intentionally has NO data attribute so the base .desktop rule wins. */
 const WP_KEY = 'cozyfiles.desktop.wallpaper';
-const WALLPAPERS = ['cubes', 'grid', 'acid', 'dots', 'void'];
-const WP_LABEL = { cubes: 'cubes', grid: 'grid', acid: 'acid', dots: 'dots', void: 'void' };
+const WALLPAPERS = ['cubes', 'grid', 'acid', 'dots', 'void', 'sunset', 'synthwave', 'aurora', 'scan'];
+const WP_LABEL = {
+  cubes: 'cubes', grid: 'grid', acid: 'acid', dots: 'dots', void: 'void',
+  sunset: 'sunset', synthwave: 'synthwave', aurora: 'aurora', scan: 'scan',
+};
 
 function applyWallpaper(name) {
   const desktop = document.getElementById('desktop');

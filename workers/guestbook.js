@@ -95,8 +95,10 @@ function buildEntry(input) {
   const msg = clean(input.msg, MSG_MAX);
   if (!name || !msg) return null;
   const at = clean(input.at, AT_MAX) || stamp();
-  // server-issued id wins so two clients cannot collide on a client id
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  // Prefer a valid client-supplied id so the client's optimistic cached entry
+  // reconciles with what GET later returns (otherwise the poster sees their own
+  // message twice after sync). Fall back to a server id if none was sent.
+  const id = clean(input.id, ID_MAX) || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   return { name, msg, at, id };
 }
 
@@ -143,8 +145,11 @@ async function isRateLimited(env, ip) {
 
 async function handleGet(request, env) {
   const all = await readWall(env);
-  // newest-first, capped to GET_LIMIT
-  const recent = all.slice(-GET_LIMIT).reverse();
+  // oldest-first, capped to the most recent GET_LIMIT. The client model is
+  // oldest-first (it reverses for display and caps with slice(-N), which must
+  // drop the OLDEST not the newest), so returning oldest-first keeps both sides
+  // in agreement on order and on which entries the cap sheds.
+  const recent = all.slice(-GET_LIMIT);
   return json({ entries: recent }, 200, request);
 }
 

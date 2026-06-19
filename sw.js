@@ -12,7 +12,7 @@
 // subpath (optimummeans.github.io/cozyfiles/). A leading "/" would resolve to
 // the GitHub Pages domain root and 404. The SW scope is its own directory.
 
-const CACHE = 'cozyfiles-v1';
+const CACHE = 'cozyfiles-v2';
 
 // Core app shell: the document, every stylesheet linked in index.html, every
 // JS module reachable from main.js, and the key static assets the desktop
@@ -37,6 +37,8 @@ const PRECACHE_URLS = [
   './css/apps/plugin.css',
   './css/apps/deck.css',
   './css/apps/studio-session.css',
+  './css/apps/radio.css',
+  './css/apps/credits.css',
   './css/apps/terminal.css',
   './css/apps/guestbook.css',
   './css/apps/notepad.css',
@@ -62,6 +64,8 @@ const PRECACHE_URLS = [
   './js/apps/studio-session.js',
   './js/apps/daw-engine.js',
   './js/apps/plugin-ui.js',
+  './js/apps/radio.js',
+  './js/apps/credits.js',
   './js/apps/eggs/terminal.js',
   './js/apps/eggs/guestbook.js',
   './js/apps/eggs/notepad.js',
@@ -72,6 +76,9 @@ const PRECACHE_URLS = [
   // key assets + data
   './assets/icons/favicon.png',
   './assets/icons/apple-touch-icon.png',
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
+  './assets/icons/icon-512-maskable.png',
   './assets/icons/gate-logo.webp',
   './assets/logo-main.png',
   './assets/glyph-mask.png',

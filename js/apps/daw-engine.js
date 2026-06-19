@@ -583,10 +583,31 @@ export class DawEngine {
     const sampleRate = 44100;
     const ctx = new OAC(1, Math.ceil(total * sampleRate), sampleRate);
 
-    // mirror the live master gain so the export loudness matches the mix
+    // Rebuild the LIVE signal chain offline so the export matches the mix.
+    // Routing every voice straight into one master (the old way) dropped the
+    // per-track fader attenuation, ran ~2-3 dB hot and clipped stacked hits, and
+    // ignored the filter device. Chain: voice -> per-track gain (fader, honoring
+    // mute/solo) -> master filter -> master gain -> destination. this.tracks may
+    // be empty if live audio was never started, so read with safe defaults.
     const master = ctx.createGain();
     master.gain.value = this._faderToGain(this.masterFader);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = this.filter.on ? this.filterCutoffHz() : 20000;
+    filter.Q.value = this.filter.on ? this.filterQ() : 0.0001;
+    filter.connect(master);
     master.connect(ctx.destination);
+
+    const anySolo = this.tracks.some((t) => t && t.solo);
+    const trackDest = TRACKS.map((_, r) => {
+      const t = this.tracks[r] || {};
+      const audible = t.mute ? false : (anySolo ? !!t.solo : true);
+      const g = ctx.createGain();
+      g.gain.value = audible ? this._faderToGain(t.fader ?? 0.75) : 0;
+      g.connect(filter);
+      return g;
+    });
 
     for (let c = 0; c < cycles; c++) {
       for (let step = 0; step < STEPS; step++) {
@@ -594,7 +615,7 @@ export class DawEngine {
         const t = base + swingOffset(step, this.bpm, this.swing);
         for (let r = 0; r < TRACKS.length; r++) {
           const vel = this.grid[r][step];
-          if (vel > 0) triggerVoice(ctx, master, TRACKS[r], t, vel);
+          if (vel > 0) triggerVoice(ctx, trackDest[r], TRACKS[r], t, vel);
         }
       }
     }
