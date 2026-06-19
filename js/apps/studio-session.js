@@ -900,15 +900,17 @@ function buildMixerView(viewEl, ctx) {
 
   // real VU from analysers; parked off-tab so nothing leaks
   let rafId = 0;
+  let alive = true; // gate so an in-flight frame after park cannot re-arm the loop
   const tick = () => {
+    if (!alive) { rafId = 0; return; }
     strips.forEach(({ segs, level }) => {
       const lvl = Math.round((level ? level() : 0) * segs.length);
       segs.forEach((seg, s) => seg.classList.toggle('is-lit', s < lvl));
     });
     rafId = requestAnimationFrame(tick);
   };
-  const resume = () => { if (!rafId && !reducedMotionSession()) rafId = requestAnimationFrame(tick); };
-  const park = () => { if (rafId) cancelAnimationFrame(rafId); rafId = 0; };
+  const resume = () => { alive = true; if (!rafId && !reducedMotionSession()) rafId = requestAnimationFrame(tick); };
+  const park = () => { alive = false; if (rafId) cancelAnimationFrame(rafId); rafId = 0; };
   ctx.disposers.push(park);
   resume();
   return { resume, park };

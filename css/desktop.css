@@ -140,9 +140,9 @@
 .desktop__icons.is-free {
   inset: 0; width: auto; max-height: calc(100% - var(--taskbar-h));
 }
-.icon { cursor: grab; touch-action: none; }
-.icon.is-placed { position: absolute; margin: 0; }
-.icon.is-dragging { cursor: grabbing; opacity: 0.85; z-index: 5; }
+.desktop__icons .icon { cursor: grab; touch-action: none; }
+.desktop__icons .icon.is-placed { position: absolute; margin: 0; }
+.desktop__icons .icon.is-dragging { cursor: grabbing; opacity: 0.85; z-index: 5; }
 
 /* brief flash so "Arrange icons" always reads, even if nothing had moved */
 @keyframes icons-arrange-flash {

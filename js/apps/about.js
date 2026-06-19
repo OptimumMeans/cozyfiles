@@ -208,7 +208,7 @@ function render(el, handle) {
     try {
       const sel = window.getSelection();
       const range = document.createRange();
-      range.selectNodeContents(body);
+      range.selectNodeContents(doc);
       sel.removeAllRanges();
       sel.addRange(range);
       return true;
@@ -241,10 +241,10 @@ function render(el, handle) {
         applyState(); flash('crt tint ' + (state.crt ? 'on' : 'off'));
         break;
       case 'zoomin':
-        zoom++; LS.set('zoom', String(zoom)); applyState(); flash('zoom ' + zoom);
+        zoom = Math.min(4, zoom + 1); LS.set('zoom', String(zoom)); applyState(); flash('zoom ' + zoom);
         break;
       case 'zoomout':
-        zoom--; LS.set('zoom', String(zoom)); applyState(); flash('zoom ' + zoom);
+        zoom = Math.max(-2, zoom - 1); LS.set('zoom', String(zoom)); applyState(); flash('zoom ' + zoom);
         break;
       case 'zoomreset':
         zoom = 0; LS.set('zoom', '0'); applyState(); flash('zoom reset');
@@ -301,11 +301,16 @@ function render(el, handle) {
   // click outside closes any open menu
   const onDocPointer = (e) => { if (!e.target.closest || !e.target.closest('.ab__menu')) closeMenus(); };
   document.addEventListener('pointerdown', onDocPointer, true);
-  el.closest('.win')?.addEventListener('animationstart', (e) => {
-    if (e.animationName && /clos/i.test(e.animationName)) {
+  // Reliable teardown: the close animation does not fire under reduced motion, so
+  // hook the window handle directly rather than relying on an animationstart event.
+  if (handle && typeof handle.close === 'function') {
+    const origClose = handle.close;
+    handle.close = () => {
       document.removeEventListener('pointerdown', onDocPointer, true);
-    }
-  });
+      if (statusTimer) clearTimeout(statusTimer);
+      origClose();
+    };
+  }
 
   applyState();
 
