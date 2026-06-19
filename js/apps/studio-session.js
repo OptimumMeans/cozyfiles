@@ -5,7 +5,11 @@ import { wm, onTap } from '../window-manager.js';
 import { registerApp, openApp } from '../desktop.js';
 import { createDawFaderVuRow, createDawKnob } from '../daw-components.js';
 import { createPluginLed, drawIrregularWaveform, setPluginLed } from './plugin-ui.js';
-import { DawEngine, TRACKS as DAW_TRACKS, STEPS as DAW_STEPS } from './daw-engine.js';
+import {
+  DawEngine, TRACKS as DAW_TRACKS, STEPS as DAW_STEPS,
+  encodeBeat, beatFromLocation,
+  loadProjects, saveProject, deleteProject,
+} from './daw-engine.js';
 import {
   RELEASE_STACK_URLS,
   fetchSpotifyStackMeta,
@@ -99,6 +103,13 @@ function render(root, win) {
   // master filter device. Lazily starts its AudioContext on the first user
   // gesture (Play / step toggle), per browser autoplay rules.
   const engine = new DawEngine();
+
+  // Deep-link self-load: if the page was opened with ?beat=<code>, decode it
+  // into the engine BEFORE any view builds so the Studio grid + transport show
+  // the shared beat. Invalid/absent codes are ignored silently. The desktop
+  // routing that OPENS this app on a ?beat link lives elsewhere; we only trust
+  // the URL and load from it here.
+  selfLoadBeatFromUrl(engine);
 
   buildRuler(root);
   buildInspector(root);
@@ -583,6 +594,19 @@ function buildSessionZoom(root, sessionEl) {
   }
 }
 
+/* Self-load a shared beat from the current URL (?beat=<code>) into the engine.
+   Safe to call before any view is built; a missing or malformed code is a
+   silent no-op so a normal open is unaffected. Returns true if a beat loaded. */
+function selfLoadBeatFromUrl(engine) {
+  try {
+    const beat = beatFromLocation(window.location);
+    if (!beat) return false;
+    return engine.deserialize(beat);
+  } catch {
+    return false;
+  }
+}
+
 /* ── Studio view (step sequencer) ───────────────────────────────────────────
    A real, audible step sequencer. Drives the shared DawEngine: a transport
    (play/stop, tempo, swing), a per-track step grid you can toggle, and live
@@ -616,6 +640,22 @@ function buildStudioView(viewEl, ctx) {
           aria-label="clear pattern" title="clear">CLR</button>
       </div>
       <div class="session__seq-grid" role="grid" aria-label="steps"></div>
+      <div class="session__seq-actions">
+        <button type="button" class="session__seq-btn session__seq-btn--ghost" data-act="share"
+          aria-label="copy share link" title="copy a link to this beat">SHARE</button>
+        <button type="button" class="session__seq-btn session__seq-btn--ghost" data-act="wav"
+          aria-label="export wav" title="export this loop to a .wav file">EXPORT .WAV</button>
+        <span class="session__seq-spacer"></span>
+        <label class="session__seq-field session__seq-saveas">
+          <span>SAVE AS</span>
+          <input class="session__seq-name" type="text" maxlength="40" placeholder="pattern name"
+            aria-label="project name" />
+        </label>
+        <button type="button" class="session__seq-btn session__seq-btn--ghost" data-act="save"
+          aria-label="save project" title="save this pattern">SAVE</button>
+        <span class="session__seq-toast" aria-live="polite"></span>
+      </div>
+      <div class="session__seq-projects" id="session-seq-projects" aria-label="saved projects"></div>
       <p class="session__seq-hint">// click a cell to toggle. shift-click or right-click cycles accent. drums + bass + lead, live Web Audio.</p>
     </div>
   `;
@@ -732,22 +772,183 @@ function buildStudioView(viewEl, ctx) {
   onTap(viewEl.querySelector('[data-act="stop"]'), () => stopTransport());
   onTap(viewEl.querySelector('[data-act="clear"]'), () => {
     engine.clearGrid();
-    for (let r = 0; r < DAW_TRACKS.length; r++)
-      for (let s = 0; s < DAW_STEPS; s++) paintCell(r, s);
+    paintAll();
   });
   onTap(viewEl.querySelector('[data-act="rand"]'), () => {
     engine.randomizeGrid();
-    for (let r = 0; r < DAW_TRACKS.length; r++)
-      for (let s = 0; s < DAW_STEPS; s++) paintCell(r, s);
+    paintAll();
   });
   bpmInput.addEventListener('change', () => { bpmInput.value = engine.setBpm(bpmInput.value); });
   swingInput.addEventListener('input', () => {
     swingVal.textContent = engine.setSwing(swingInput.value) + '%';
   });
 
+  // Repaint every cell + resync the transport inputs to the engine. Used after
+  // any wholesale grid change (clear, randomize, load a saved/shared beat).
+  function paintAll() {
+    for (let r = 0; r < DAW_TRACKS.length; r++)
+      for (let s = 0; s < DAW_STEPS; s++) paintCell(r, s);
+  }
+  function syncTransportInputs() {
+    bpmInput.value = String(engine.bpm);
+    swingInput.value = String(engine.swing);
+    swingVal.textContent = engine.swing + '%';
+  }
+  // The grid may already carry a URL-loaded beat (selfLoadBeatFromUrl ran in
+  // render before this view built); reflect tempo/swing in the inputs now.
+  syncTransportInputs();
+
+  // ── share / export / save ─────────────────────────────────────────────────
+  const toastEl = viewEl.querySelector('.session__seq-toast');
+  let toastTimer = 0;
+  function flash(msg, bad) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.toggle('is-bad', !!bad);
+    toastEl.classList.add('is-on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('is-on'), 2200);
+  }
+
+  // Build the shareable link: (origin + pathname) + ?beat=<code>. We drop any
+  // existing query/hash so the link is clean and deterministic.
+  function buildShareLink() {
+    const code = encodeBeat(engine.serialize());
+    const base = window.location.origin + window.location.pathname;
+    return base + '?beat=' + code;
+  }
+
+  // Clipboard with a hidden-textarea fallback for non-secure contexts / older
+  // browsers where navigator.clipboard is unavailable.
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch { /* fall through to the textarea path */ }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch {
+      return false;
+    }
+  }
+
+  onTap(viewEl.querySelector('[data-act="share"]'), async () => {
+    const link = buildShareLink();
+    const ok = await copyText(link);
+    flash(ok ? 'link copied.' : 'copy failed - see console.', !ok);
+    if (!ok) console.warn('cozyfiles share link (copy manually):', link);
+  });
+
+  onTap(viewEl.querySelector('[data-act="wav"]'), async () => {
+    const btn = viewEl.querySelector('[data-act="wav"]');
+    btn.disabled = true;
+    flash('rendering wav.');
+    try {
+      const blob = await engine.renderToWav(2);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cozyfiles-beat.wav';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      flash('wav exported.');
+    } catch (err) {
+      console.warn('wav export failed', err);
+      flash('export failed.', true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── saved projects panel ──────────────────────────────────────────────────
+  const nameInput = viewEl.querySelector('.session__seq-name');
+  const projectsEl = viewEl.querySelector('#session-seq-projects');
+
+  function loadProjectByName(name) {
+    const map = loadProjects();
+    const beat = map[name];
+    if (!beat) { flash('not found.', true); return; }
+    if (engine.deserialize(beat)) {
+      paintAll();
+      syncTransportInputs();
+      if (nameInput) nameInput.value = name;
+      flash('loaded "' + name + '".');
+    } else {
+      flash('load failed.', true);
+    }
+  }
+
+  function renderProjects() {
+    if (!projectsEl) return;
+    const map = loadProjects();
+    const names = Object.keys(map).sort((a, b) => a.localeCompare(b));
+    projectsEl.innerHTML = '';
+    if (!names.length) {
+      const empty = document.createElement('p');
+      empty.className = 'session__seq-projects-empty';
+      empty.textContent = '// no saved patterns yet.';
+      projectsEl.appendChild(empty);
+      return;
+    }
+    names.forEach((name) => {
+      const row = document.createElement('div');
+      row.className = 'session__seq-proj';
+
+      const loadBtn = document.createElement('button');
+      loadBtn.type = 'button';
+      loadBtn.className = 'session__seq-proj-load';
+      loadBtn.textContent = name;
+      loadBtn.setAttribute('aria-label', 'load ' + name);
+      onTap(loadBtn, () => loadProjectByName(name));
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'session__seq-proj-del';
+      delBtn.textContent = '×'; // multiplication sign
+      delBtn.setAttribute('aria-label', 'delete ' + name);
+      onTap(delBtn, () => {
+        deleteProject(name);
+        renderProjects();
+        flash('deleted "' + name + '".');
+      });
+
+      row.append(loadBtn, delBtn);
+      projectsEl.appendChild(row);
+    });
+  }
+
+  onTap(viewEl.querySelector('[data-act="save"]'), () => {
+    const name = (nameInput && nameInput.value || '').trim();
+    if (!name) { flash('name it first.', true); if (nameInput) nameInput.focus(); return; }
+    const saved = saveProject(name, engine.serialize());
+    if (saved) { renderProjects(); flash('saved "' + saved + '".'); }
+    else flash('save failed.', true);
+  });
+  if (nameInput) {
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); viewEl.querySelector('[data-act="save"]').click(); }
+    });
+  }
+  renderProjects();
+
   // teardown: stop transport + cancel rAF on window close (engine.dispose
   // closes the context; we just stop our loop + UI here)
-  const teardown = () => { stopTransport(); };
+  const teardown = () => { stopTransport(); clearTimeout(toastTimer); };
   ctx.disposers.push(teardown);
 
   // park = stop the rAF playhead loop while off-tab (transport keeps playing so

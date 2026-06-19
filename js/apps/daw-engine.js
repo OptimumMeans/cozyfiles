@@ -43,6 +43,10 @@ const SEED = [
 export const STEPS = 16;
 export const DEFAULT_BPM = 110;
 
+// Bumped when the serialized beat shape changes so old share codes can be
+// detected (and, if ever needed, migrated). v1 = { v, bpm, swing, grid }.
+export const BEAT_VERSION = 1;
+
 export function makeSeedGrid() {
   return SEED.map((row) => row.slice(0, STEPS));
 }
@@ -132,6 +136,131 @@ export function triggerVoice(ctx, dest, track, t, vel = 1) {
       break;
     }
   }
+}
+
+// ---- share-code encoding ---------------------------------------------------
+// Compact, URL-safe base64 of the beat JSON. Small enough to live in a query
+// string. encodeBeat/decodeBeat are a matched pair; decode returns null on any
+// malformed input so callers can ignore a bad code silently.
+export function encodeBeat(beat) {
+  const json = JSON.stringify(beat);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export function decodeBeat(code) {
+  try {
+    let b64 = String(code).replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const json = decodeURIComponent(escape(atob(b64)));
+    const obj = JSON.parse(json);
+    if (!obj || typeof obj !== 'object') return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+
+// Pull a beat code from a URL/Location-like object's ?beat= query param.
+// Accepts a Location, a URL, or a raw search/href string. Returns the decoded
+// beat object, or null when absent/invalid.
+export function beatFromLocation(loc = window.location) {
+  let search = '';
+  if (loc && typeof loc === 'object') search = loc.search || '';
+  else if (typeof loc === 'string') search = loc;
+  if (!search && typeof loc === 'string') search = loc;
+  let code = null;
+  try {
+    // tolerate a full href, a "?a=b" search, or a bare "beat=xyz"
+    const qs = search.includes('?') ? search.slice(search.indexOf('?') + 1) : search;
+    code = new URLSearchParams(qs).get('beat');
+  } catch {
+    const m = String(search).match(/[?&]beat=([^&#]+)/);
+    code = m ? decodeURIComponent(m[1]) : null;
+  }
+  if (!code) return null;
+  return decodeBeat(code);
+}
+
+// ---- WAV encoding ----------------------------------------------------------
+// Encode an AudioBuffer (mono or stereo) as a 16-bit PCM WAV Blob.
+export function wavBlobFromBuffer(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const len = buffer.length;
+  const sampleRate = buffer.sampleRate;
+  const bytesPerSample = 2;
+  const blockAlign = numCh * bytesPerSample;
+  const dataSize = len * blockAlign;
+  const out = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(out);
+
+  const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);          // fmt chunk size
+  view.setUint16(20, 1, true);           // PCM
+  view.setUint16(22, numCh, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);          // bits per sample
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  const chans = [];
+  for (let ch = 0; ch < numCh; ch++) chans.push(buffer.getChannelData(ch));
+  let off = 44;
+  for (let i = 0; i < len; i++) {
+    for (let ch = 0; ch < numCh; ch++) {
+      let s = Math.max(-1, Math.min(1, chans[ch][i]));
+      s = s < 0 ? s * 0x8000 : s * 0x7fff;
+      view.setInt16(off, s, true);
+      off += 2;
+    }
+  }
+  return new Blob([out], { type: 'audio/wav' });
+}
+
+// ---- saved projects (localStorage) -----------------------------------------
+// Named patterns persisted as a JSON map under one namespaced key:
+//   cozyfiles.studio.projects = { "<name>": <beat>, ... }
+// The name is the key, so saving the same name overwrites. All reads are
+// defensive (blocked storage / bad JSON -> empty map) so the UI never throws.
+const PROJECTS_KEY = 'cozyfiles.studio.projects';
+
+export function loadProjects() {
+  try {
+    const raw = localStorage.getItem(PROJECTS_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeProjects(map) {
+  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(map)); return true; }
+  catch { return false; } // quota or blocked storage
+}
+
+// Save (or overwrite) a beat under `name`. Returns the trimmed name on success,
+// null if the name was empty or storage was unavailable.
+export function saveProject(name, beat) {
+  const key = String(name || '').trim();
+  if (!key) return null;
+  const map = loadProjects();
+  map[key] = beat;
+  return writeProjects(map) ? key : null;
+}
+
+export function deleteProject(name) {
+  const map = loadProjects();
+  if (!(name in map)) return false;
+  delete map[name];
+  return writeProjects(map);
 }
 
 // ---- the engine ------------------------------------------------------------
@@ -401,6 +530,77 @@ export class DawEngine {
       this._step = (this._step + 1) % STEPS;
     }
     this._pumpId = setTimeout(() => this._pump(), this._LOOKAHEAD);
+  }
+
+  // ---- serialize / share ---------------------------------------------------
+  // A "beat" is the compact, portable state of the sequencer: the step grid
+  // (velocities), tempo and swing. The version tag lets future formats be
+  // detected and repaired. Mixer/filter state is intentionally NOT included so
+  // a shared link stays tiny and reproducible.
+  serialize() {
+    return {
+      v: BEAT_VERSION,
+      bpm: this.bpm,
+      swing: this.swing,
+      // round velocities to 2dp so the JSON (and thus the share code) is tight
+      grid: this.grid.map((row) =>
+        row.map((cell) => (cell > 0 ? Math.round(cell * 100) / 100 : 0))),
+    };
+  }
+
+  // Load a serialized beat into this engine, coercing/repairing its shape so a
+  // malformed or stale code can never corrupt engine state. Unknown extra
+  // tracks/steps are ignored; missing ones default to silence. Returns true on
+  // a successful load, false if the beat was unusable.
+  deserialize(beat) {
+    if (!beat || typeof beat !== 'object') return false;
+    const grid = TRACKS.map((_, r) => {
+      const src = (Array.isArray(beat.grid) && beat.grid[r]) || [];
+      const row = new Array(STEPS).fill(0);
+      for (let s = 0; s < STEPS; s++) {
+        const n = Number(src[s]);
+        row[s] = Number.isFinite(n) && n > 0 ? Math.min(1, n) : 0;
+      }
+      return row;
+    });
+    this.grid = grid;
+    this.setBpm(beat.bpm);
+    this.setSwing(beat.swing);
+    return true;
+  }
+
+  // ---- offline render (export) ---------------------------------------------
+  // Render `cycles` loops of the current grid to a 16-bit PCM WAV Blob using
+  // OfflineAudioContext and the SAME triggerVoice() recipes as live playback,
+  // so the export never desyncs from what you hear. Returns a Promise<Blob>.
+  async renderToWav(cycles = 2) {
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC) throw new Error('OfflineAudioContext unavailable');
+    const sps = secondsPerStep(this.bpm);
+    const tail = 0.6; // let the last hits ring out
+    const cycleDur = STEPS * sps;
+    const total = cycleDur * cycles + tail;
+    const sampleRate = 44100;
+    const ctx = new OAC(1, Math.ceil(total * sampleRate), sampleRate);
+
+    // mirror the live master gain so the export loudness matches the mix
+    const master = ctx.createGain();
+    master.gain.value = this._faderToGain(this.masterFader);
+    master.connect(ctx.destination);
+
+    for (let c = 0; c < cycles; c++) {
+      for (let step = 0; step < STEPS; step++) {
+        const base = c * cycleDur + step * sps;
+        const t = base + swingOffset(step, this.bpm, this.swing);
+        for (let r = 0; r < TRACKS.length; r++) {
+          const vel = this.grid[r][step];
+          if (vel > 0) triggerVoice(ctx, master, TRACKS[r], t, vel);
+        }
+      }
+    }
+
+    const rendered = await ctx.startRendering();
+    return wavBlobFromBuffer(rendered);
   }
 
   // ---- teardown ------------------------------------------------------------
