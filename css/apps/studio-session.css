@@ -1,4 +1,4 @@
-/* studio-session.css — his Logic-style session view, packaged as a windowed app.
+/* studio-session.css - his Logic-style session view, packaged as a windowed app.
    Scoped to .app-studio-session so it never touches the cozyOS desktop. */
 
 /* his greyscale palette + window chrome, scoped to his two app windows only
@@ -95,7 +95,7 @@
   z-index: 1;
 }
 
-/* top toolbar — Logic-style dense clusters */
+/* top toolbar - Logic-style dense clusters */
 .session__toolbar {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -251,7 +251,7 @@
   flex-shrink: 0;
   padding: calc(2px * var(--session-scale));
 }
-.session__toolbar-tabs span {
+.session__tab {
   font-family: var(--font-mono);
   font-size: calc(10px * var(--session-scale));
   letter-spacing: 0.05em;
@@ -265,8 +265,18 @@
     color-mix(in srgb, var(--panel) 55%, var(--bg))
   );
   box-shadow: var(--depth-raise);
+  cursor: pointer;
+  line-height: 1;
 }
-.session__toolbar-tabs .is-on {
+.session__tab:hover {
+  color: var(--ink);
+  border-top-color: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.session__tab:focus-visible {
+  outline: 1px solid var(--ink-dim);
+  outline-offset: 1px;
+}
+.session__tab.is-on {
   color: var(--ink);
   background: linear-gradient(
     to bottom,
@@ -632,6 +642,16 @@
   border-right: 1px solid color-mix(in srgb, var(--bg) 65%, black);
   box-shadow: inset 1px 0 0 color-mix(in srgb, var(--ink) 4%, transparent);
 }
+/* each tab maps to one full-height view inside the arrange area */
+.session__view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.session__view[hidden] { display: none; }
+
 .session__stacks {
   display: flex;
   flex-direction: column;
@@ -908,6 +928,420 @@
   letter-spacing: 0.03em;
 }
 
+/* ── DAW channel components (fader / VU / knob) ──────────────────────────────
+   Base look for the shared createDawFaderVuRow / createDawKnob primitives, plus
+   the interactive (draggable) treatment used by the strip + mixer. */
+.daw-channel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --fader-pos: 62%;
+}
+.daw-channel__strip-row {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(5px * var(--session-scale));
+}
+.daw-channel__vu {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 1px;
+  width: calc(9px * var(--session-scale));
+  height: calc(96px * var(--session-scale));
+  padding: 2px 1px;
+  border: 1px solid color-mix(in srgb, var(--ink-dim) 35%, transparent);
+  background: color-mix(in srgb, var(--bg) 85%, black);
+  box-shadow: var(--depth-inset);
+  flex-shrink: 0;
+}
+.daw-channel__vu-seg {
+  flex: 1;
+  min-height: 1px;
+  background: color-mix(in srgb, var(--panel) 80%, var(--bg));
+  opacity: 0.32;
+  transition: opacity 40ms linear, background 40ms linear;
+}
+.daw-channel__vu-seg.is-lit[data-tier="low"] {
+  opacity: 1;
+  background: var(--meter-green);
+  box-shadow: 0 0 2px color-mix(in srgb, var(--meter-green) 40%, transparent);
+}
+.daw-channel__vu-seg.is-lit[data-tier="high"] {
+  opacity: 1;
+  background: var(--meter-amber);
+}
+.daw-channel__vu-seg.is-lit[data-tier="peak"] {
+  opacity: 1;
+  background: var(--meter-red);
+}
+
+/* fader track + travelling cap (cap sits at --fader-pos from the bottom) */
+.daw-channel__fader {
+  position: relative;
+  width: calc(14px * var(--session-scale));
+  height: calc(96px * var(--session-scale));
+  border: 1px solid color-mix(in srgb, var(--ink-dim) 50%, transparent);
+  border-radius: 1px;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--bg) 92%, black),
+    color-mix(in srgb, var(--panel) 60%, var(--bg)),
+    color-mix(in srgb, var(--bg) 92%, black)
+  );
+  box-shadow: var(--depth-inset);
+  flex-shrink: 0;
+}
+.daw-channel__fader-ticks {
+  position: absolute;
+  inset: 2px 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ink) 10%, transparent) 0,
+    color-mix(in srgb, var(--ink) 10%, transparent) 1px,
+    transparent 1px,
+    transparent calc(100% / 9)
+  );
+  pointer-events: none;
+}
+.daw-channel__fader-cap {
+  position: absolute;
+  left: 50%;
+  bottom: var(--fader-pos);
+  width: calc(24px * var(--session-scale));
+  height: calc(9px * var(--session-scale));
+  margin-left: calc(-12px * var(--session-scale));
+  margin-bottom: calc(-4.5px * var(--session-scale));
+  border: 1px solid var(--depth-shadow);
+  border-top-color: color-mix(in srgb, var(--ink) 22%, transparent);
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--chrome) 40%, var(--panel)),
+    color-mix(in srgb, var(--panel) 60%, var(--bg))
+  );
+  box-shadow:
+    var(--depth-raise),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.daw-channel__fader-notch {
+  display: block;
+  width: 70%;
+  height: 1px;
+  margin: 50% auto 0;
+  background: color-mix(in srgb, var(--bg) 70%, black);
+}
+
+/* knob */
+.daw-channel__knob {
+  position: relative;
+  width: calc(28px * var(--session-scale));
+  height: calc(28px * var(--session-scale));
+  border-radius: 50%;
+  border: 1px solid var(--depth-shadow);
+  border-top-color: color-mix(in srgb, var(--ink) 18%, transparent);
+  background:
+    radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--chrome) 36%, var(--panel)), color-mix(in srgb, var(--panel) 70%, var(--bg)) 70%),
+    var(--panel);
+  box-shadow:
+    var(--depth-raise),
+    0 2px 5px rgba(0, 0, 0, 0.4);
+}
+.daw-channel__knob-tick {
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 2px;
+  height: calc(8px * var(--session-scale));
+  margin-left: -1px;
+  background: var(--ink);
+  opacity: 0.85;
+  transform-origin: 50% calc(11px * var(--session-scale));
+  transform: rotate(var(--knob-rot, 0deg));
+}
+
+/* interactive (draggable) affordances */
+.daw-channel__fader.is-interactive,
+.daw-channel__knob.is-interactive {
+  cursor: grab;
+  touch-action: none;
+}
+.daw-channel__fader.is-interactive:hover .daw-channel__fader-cap {
+  border-top-color: color-mix(in srgb, var(--ink) 34%, transparent);
+}
+.daw-channel__fader.is-interactive.is-dragging,
+.daw-channel__knob.is-interactive.is-dragging {
+  cursor: grabbing;
+}
+.daw-channel__fader.is-interactive:focus-visible,
+.daw-channel__knob.is-interactive:focus-visible {
+  outline: 1px solid var(--ink-dim);
+  outline-offset: 2px;
+}
+.daw-channel__fader.is-interactive.is-dragging .daw-channel__fader-cap {
+  border-top-color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* left-strip overrides: drive the cap from --fader-pos and label readouts */
+.session__strip-mixer.daw-channel { --fader-pos: 62%; }
+.session__strip-pan {
+  align-items: center;
+}
+.session__strip-pan-readout,
+.session__strip-fader-readout {
+  font-family: var(--font-mono);
+  font-size: calc(8px * var(--session-scale));
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+  text-align: center;
+}
+.session__strip-fader-readout {
+  margin-top: calc(2px * var(--session-scale));
+  padding-bottom: calc(4px * var(--session-scale));
+}
+
+/* openDAW launch-out insert (anchor styled like a plugin slot) */
+.session__plugin--link {
+  text-decoration: none;
+  grid-template-columns: calc(10px * var(--session-scale)) 1fr auto;
+}
+.session__plugin-out {
+  font-size: calc(11px * var(--session-scale));
+  color: var(--ink-dim);
+  opacity: 0.7;
+}
+.session__plugin--link:hover .session__plugin-out { opacity: 1; color: var(--ink); }
+
+/* ── Mixer view ────────────────────────────────────────────────────────────── */
+.session__mixer {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: calc(12px * var(--session-scale));
+  flex: 1;
+  min-height: 0;
+  padding: calc(14px * var(--session-scale));
+  overflow: auto;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 96%, black) 0%,
+    color-mix(in srgb, var(--bg-2) 90%, black) 100%
+  );
+  box-shadow: var(--depth-inset);
+}
+.session__mixer-ch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(8px * var(--session-scale));
+  padding: calc(10px * var(--session-scale)) calc(8px * var(--session-scale));
+  border: 1px solid var(--depth-shadow);
+  border-top-color: color-mix(in srgb, var(--ink) 7%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 74%, var(--chrome)),
+    color-mix(in srgb, var(--panel) 56%, var(--bg))
+  );
+  box-shadow: var(--depth-raise);
+}
+.session__mixer-ch.is-master {
+  border-color: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--chrome) 24%, var(--panel)),
+    color-mix(in srgb, var(--panel) 60%, var(--bg))
+  );
+}
+.session__mixer-knob {
+  display: flex;
+  justify-content: center;
+  padding-bottom: calc(2px * var(--session-scale));
+}
+.session__mixer-knob .daw-channel__knob {
+  width: calc(22px * var(--session-scale));
+  height: calc(22px * var(--session-scale));
+}
+.session__mixer-label {
+  font-family: var(--font-mono);
+  font-size: calc(9px * var(--session-scale));
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+  text-transform: lowercase;
+}
+.session__mixer-ch.is-master .session__mixer-label { color: var(--ink); }
+
+/* ── Media view ────────────────────────────────────────────────────────────── */
+.session__media {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--session-scale));
+  flex: 1;
+  min-height: 0;
+  padding: calc(18px * var(--session-scale));
+  overflow: auto;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 96%, black) 0%,
+    color-mix(in srgb, var(--bg-2) 90%, black) 100%
+  );
+  box-shadow: var(--depth-inset);
+}
+.session__media-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: calc(12px * var(--session-scale));
+  padding: calc(12px * var(--session-scale)) calc(14px * var(--session-scale));
+  border: 1px solid var(--depth-shadow);
+  border-top-color: color-mix(in srgb, var(--ink) 8%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #4a6a8a 22%, var(--panel)),
+    color-mix(in srgb, #4a6a8a 12%, var(--bg))
+  );
+  box-shadow: var(--depth-raise);
+}
+.session__media-glyph {
+  font-size: calc(26px * var(--session-scale));
+  color: var(--ink);
+  opacity: 0.85;
+}
+.session__media-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.session__media-title {
+  font-family: var(--font-mono);
+  font-size: calc(13px * var(--session-scale));
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.session__media-sub {
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--session-scale));
+  color: var(--ink-dim);
+}
+.session__media-open {
+  font-family: var(--font-mono);
+  font-size: calc(11px * var(--session-scale));
+  padding: calc(6px * var(--session-scale)) calc(12px * var(--session-scale));
+  border: 1px solid var(--depth-shadow);
+  border-top-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  color: var(--ink);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--panel) 80%, var(--chrome)),
+    color-mix(in srgb, var(--panel) 58%, var(--bg))
+  );
+  box-shadow: var(--depth-raise);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.session__media-open:hover { color: var(--ink); border-top-color: color-mix(in srgb, var(--ink) 20%, transparent); }
+.session__media-open:focus-visible { outline: 1px solid var(--ink-dim); outline-offset: 1px; }
+.session__media-note {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--session-scale));
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+/* ── Lists view ────────────────────────────────────────────────────────────── */
+.session__list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 96%, black) 0%,
+    color-mix(in srgb, var(--bg-2) 90%, black) 100%
+  );
+  box-shadow: var(--depth-inset);
+}
+.session__list-row { border-bottom: 1px solid var(--depth-shadow); }
+.session__list-head {
+  display: grid;
+  grid-template-columns: calc(34px * var(--session-scale)) 1fr calc(20px * var(--session-scale));
+  align-items: center;
+  gap: calc(10px * var(--session-scale));
+  width: 100%;
+  min-height: calc(40px * var(--session-scale));
+  padding: calc(6px * var(--session-scale)) calc(10px * var(--session-scale));
+  border: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--panel) 64%, var(--bg)),
+    color-mix(in srgb, var(--panel) 50%, var(--bg))
+  );
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.session__list-head:hover {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--panel) 74%, var(--bg)),
+    color-mix(in srgb, var(--panel) 58%, var(--bg))
+  );
+}
+.session__list-head:focus-visible { outline: 1px solid var(--ink-dim); outline-offset: -1px; }
+.session__list-num {
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--session-scale));
+  color: var(--ink-dim);
+  text-align: center;
+}
+.session__list-labels { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.session__list-title {
+  font-family: var(--font-mono);
+  font-size: calc(12px * var(--session-scale));
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session__list-artist {
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--session-scale));
+  color: var(--ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session__list-chevron {
+  width: 0;
+  height: 0;
+  border-top: calc(4px * var(--session-scale)) solid transparent;
+  border-bottom: calc(4px * var(--session-scale)) solid transparent;
+  border-left: calc(6px * var(--session-scale)) solid var(--ink-dim);
+  opacity: 0.7;
+  transition: transform 160ms ease;
+  justify-self: center;
+}
+.session__list-row.is-expanded .session__list-chevron { transform: rotate(90deg); }
+.session__list-body {
+  padding: calc(8px * var(--session-scale)) calc(12px * var(--session-scale)) calc(12px * var(--session-scale));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--panel) 72%, var(--bg)),
+    color-mix(in srgb, var(--panel) 58%, var(--bg))
+  );
+}
+.session__list-pending {
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--session-scale));
+  color: var(--ink-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session__list-chevron { transition: none; }
+  .daw-channel__vu-seg { transition: none; }
+}
+
 /* boot populate animation */
 .studio-session.is-populating .session__plugin {
   opacity: 0;
@@ -967,7 +1401,7 @@
   .session__workspace {
     grid-template-columns: minmax(156px, 16%) minmax(0, 1fr) minmax(148px, 18%);
   }
-  .session__toolbar-tabs span:not(.is-on):nth-child(n+3) {
+  .session__tab:not(.is-on):nth-child(n+3) {
     display: none;
   }
   .session__toolbar-lcd {
