@@ -1,0 +1,255 @@
+/* app-credits styles - CREDITS, a retro rolling-credits reel with a tidy
+   static fallback. Namespaced under .app-credits. On-brand: acid-lime accent,
+   bone ink, win98 chrome strip. */
+
+.app-credits .cr {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+}
+
+/* the viewport the reel scrolls through. Letterboxed, dark, slight vignette
+   so the crawl reads like a tiny cinema screen. */
+.app-credits .cr__stage {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  outline: none;
+  background:
+    radial-gradient(120% 120% at 50% 30%, var(--bg-2) 0%, var(--bg) 72%),
+    var(--bg);
+  cursor: pointer;
+}
+.app-credits .cr__stage:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* top + bottom fade so text appears / vanishes softly at the edges */
+.app-credits .cr__stage::before,
+.app-credits .cr__stage::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 38px;
+  pointer-events: none;
+  z-index: 2;
+}
+.app-credits .cr__stage::before {
+  top: 0;
+  background: linear-gradient(var(--bg), rgba(10, 10, 10, 0));
+}
+.app-credits .cr__stage::after {
+  bottom: 0;
+  background: linear-gradient(rgba(10, 10, 10, 0), var(--bg));
+}
+
+/* the reel: centered column of text. In rolling mode it animates upward; in
+   static mode it sits at the top and the stage scrolls normally. */
+.app-credits .cr__reel {
+  position: absolute;
+  left: 0; right: 0;
+  top: 0;
+  padding: 28px 22px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---- rolling mode: animate the reel from below the stage up past the top --- */
+.app-credits .cr__stage.is-rolling .cr__reel--run {
+  animation: cr-roll 26s linear infinite;
+  animation-play-state: running;
+}
+/* paused state (toggle / tap) freezes the crawl in place */
+.app-credits .cr__stage.is-static .cr__reel {
+  animation: none;
+  position: relative;       /* let it flow + scroll instead of crawl */
+}
+.app-credits .cr__stage.is-static {
+  overflow-y: auto;
+  cursor: auto;
+}
+.app-credits .cr__stage.is-static .cr__reel { top: auto; }
+
+@keyframes cr-roll {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(-100%); }
+}
+
+/* ---- typographic blocks -------------------------------------------------- */
+.app-credits .cr__brand {
+  margin: 0;
+  font-family: var(--font-sys);
+  font-size: calc(var(--fs-sys) + 8px);
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  line-height: 1.1;
+}
+.app-credits .cr__sub {
+  margin: 0 0 18px;
+  color: var(--ink-dim);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.12em;
+}
+
+.app-credits .cr__section {
+  margin: 22px 0 10px;
+  color: var(--accent-2);
+  font-family: var(--font-sys);
+  font-size: var(--fs-sys);
+  letter-spacing: 0.1em;
+}
+
+.app-credits .cr__people,
+.app-credits .cr__thanks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.app-credits .cr__person {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.5;
+}
+.app-credits .cr__name {
+  color: var(--ink);
+  font-family: var(--font-sys);
+  font-size: calc(var(--fs-sys) - 2px);
+  letter-spacing: 0.04em;
+}
+.app-credits .cr__role {
+  color: var(--crt-green);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
+}
+.app-credits .cr__note {
+  color: var(--ink-dim);
+  font-size: var(--fs-sm);
+}
+
+/* link row under each person */
+.app-credits .cr__links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.app-credits .cr__link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  padding: 1px 3px;
+  border-bottom: 1px dotted color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.app-credits .cr__link:hover,
+.app-credits .cr__link:focus-visible {
+  color: var(--bg);
+  background: var(--accent);
+  outline: none;
+  border-bottom-color: transparent;
+}
+.app-credits .cr__linksep { color: var(--ink-dim); font-size: var(--fs-sm); }
+
+.app-credits .cr__thanks li {
+  color: var(--ink-dim);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.app-credits .cr__colophon {
+  margin: 26px 0 4px;
+  color: var(--ink);
+  font-size: var(--fs-sm);
+}
+.app-credits .cr__copy {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+}
+
+/* ---- control bar (win98 chrome strip) ----------------------------------- */
+.app-credits .cr__bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--chrome);
+  color: var(--chrome-ink);
+  border-top: 2px solid;
+  border-color: var(--bevel-light);
+  font-family: var(--font-sys);
+}
+.app-credits .cr__btn {
+  appearance: none;
+  font-family: var(--font-sys);
+  font-size: var(--fs-sys);
+  line-height: 1;
+  padding: 4px 12px;
+  color: var(--chrome-ink);
+  background: var(--chrome);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  cursor: pointer;
+}
+.app-credits .cr__btn:hover:not(:disabled),
+.app-credits .cr__btn:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+.app-credits .cr__btn:active:not(:disabled) {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.app-credits .cr__btn:disabled {
+  color: var(--bevel-dark);
+  cursor: default;
+}
+.app-credits .cr__hint {
+  margin-left: auto;
+  color: var(--chrome-ink);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- reduced motion: never crawl; show the tidy static list, scrollable --- */
+@media (prefers-reduced-motion: reduce) {
+  .app-credits .cr__stage,
+  .app-credits .cr__stage.is-rolling {
+    overflow-y: auto;
+    cursor: auto;
+  }
+  .app-credits .cr__reel,
+  .app-credits .cr__reel--run {
+    position: relative;
+    top: auto;
+    animation: none !important;
+  }
+  .app-credits .cr__stage::before,
+  .app-credits .cr__stage::after { display: none; }
+}
+
+/* ---- mobile sheet: bigger taps, comfortable reading ---------------------- */
+@media (max-width: 640px) {
+  .app-credits .cr__reel { padding: 26px 18px 30px; }
+  .app-credits .cr__bar { padding: 8px 10px; }
+  .app-credits .cr__btn { min-height: 44px; padding: 6px 16px; }
+  /* on small screens the crawl can feel cramped; static scroll is friendlier */
+  .app-credits .cr__stage.is-rolling .cr__reel--run { animation-duration: 30s; }
+}
