@@ -44,6 +44,74 @@
     var(--bg);
 }
 
+/* ---- extra wallpapers (added in settings-look) ----
+   New tasteful retro variants. Like the originals each keeps the base --bg so
+   icon/chrome contrast holds, and tints with the live --accent / --accent-2
+   tokens so a wallpaper tracks the active theme palette. Names below must be
+   added to the desktop.js WALLPAPERS array (see wiring contract) for the
+   right-click "Change wallpaper" cycle to reach them; settings sets them
+   directly regardless. */
+
+/* sunset - warm horizon glow, low band of accent-2 light */
+.desktop[data-wallpaper="sunset"] {
+  background:
+    linear-gradient(0deg,
+      color-mix(in srgb, var(--accent-2) 22%, transparent) 0%,
+      rgba(10,10,10,0) 38%),
+    radial-gradient(60% 40% at 50% 102%,
+      color-mix(in srgb, var(--accent) 18%, transparent) 0%,
+      rgba(10,10,10,0) 70%),
+    repeating-linear-gradient(0deg,
+      rgba(232,230,223,0.04) 0 1px, transparent 1px 52px),
+    radial-gradient(120% 120% at 50% 20%, var(--bg-2) 0%, var(--bg) 72%),
+    var(--bg);
+}
+
+/* synthwave - perspective neon grid receding to a horizon */
+.desktop[data-wallpaper="synthwave"] {
+  background:
+    repeating-linear-gradient(90deg,
+      color-mix(in srgb, var(--accent) 30%, transparent) 0 1px,
+      transparent 1px 64px),
+    linear-gradient(0deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 0%,
+      rgba(10,10,10,0) 30%),
+    radial-gradient(50% 36% at 50% 30%,
+      color-mix(in srgb, var(--accent-2) 16%, transparent) 0%,
+      rgba(10,10,10,0) 70%),
+    radial-gradient(120% 120% at 50% 0%, #15131a 0%, var(--bg) 66%),
+    var(--bg);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, auto;
+}
+
+/* aurora - soft drifting accent ribbons */
+.desktop[data-wallpaper="aurora"] {
+  background:
+    radial-gradient(90% 60% at 18% 12%,
+      color-mix(in srgb, var(--accent) 14%, transparent) 0%,
+      rgba(10,10,10,0) 55%),
+    radial-gradient(80% 60% at 84% 24%,
+      color-mix(in srgb, var(--accent-2) 13%, transparent) 0%,
+      rgba(10,10,10,0) 60%),
+    radial-gradient(70% 50% at 50% 96%,
+      color-mix(in srgb, var(--crt-green) 12%, transparent) 0%,
+      rgba(10,10,10,0) 60%),
+    radial-gradient(120% 120% at 50% 30%, var(--bg-2) 0%, var(--bg) 74%),
+    var(--bg);
+}
+
+/* scan - dense CRT scanline desk, muted accent wash */
+.desktop[data-wallpaper="scan"] {
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(232,230,223,0.06) 0 1px, transparent 1px 4px),
+    radial-gradient(120% 90% at 50% 50%,
+      color-mix(in srgb, var(--accent) 7%, transparent) 0%,
+      rgba(10,10,10,0) 70%),
+    radial-gradient(120% 120% at 50% 10%, #161616 0%, var(--bg) 70%),
+    var(--bg);
+}
+
 /* desktop right-click menu (win98-style). Sits above icons, below taskbar. */
 .ctx-menu {
   /* above icons + windows, but strictly below the taskbar / boot / gate / crt */

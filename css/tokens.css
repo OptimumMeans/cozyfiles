@@ -50,3 +50,44 @@
 @media (prefers-reduced-motion: reduce) {
   :root { --boot-ms: 300; }
 }
+
+/* ---- accent palettes (data-theme on :root) ----------------------------
+   The default cozyOS look (acid lime) keeps the tokens above untouched: no
+   [data-theme] attribute means none of these blocks apply. Settings sets
+   data-theme on the document element and persists it under
+   cozyfiles.desktop.theme. Each block ONLY remaps accent + chrome accents so
+   window bevels, fonts, and layout stay identical across palettes. App-scoped
+   overrides (studio-session greyscale, terminal themes) keep their own values
+   by specificity and are unaffected. */
+
+/* amber crt - warm phosphor monitor */
+:root[data-theme="amber"] {
+  --accent:    #ffb43c;
+  --accent-2:  #ff6a3c;
+  --crt-green: #ffcf6a;
+  --titlebar:  var(--accent);
+}
+
+/* ice cyan - cold terminal */
+:root[data-theme="cyan"] {
+  --accent:    #3cf0ff;
+  --accent-2:  #ff5ea8;
+  --crt-green: #5effd6;
+  --titlebar:  var(--accent);
+}
+
+/* mono - bone-on-black, no chroma */
+:root[data-theme="mono"] {
+  --accent:    #e8e6df;
+  --accent-2:  #9a9890;
+  --crt-green: #c7c3b8;
+  --titlebar:  var(--accent);
+}
+
+/* vapor - hot magenta / cyan dream */
+:root[data-theme="vapor"] {
+  --accent:    #ff5ed6;
+  --accent-2:  #6af0ff;
+  --crt-green: #b6ff3c;
+  --titlebar:  var(--accent);
+}
