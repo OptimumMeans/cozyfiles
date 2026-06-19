@@ -1,5 +1,5 @@
 // files.js - FILES.EXE (file-explorer portfolio, the centerpiece app).
-import { wm } from '../window-manager.js';
+import { wm, onTap } from '../window-manager.js';
 import { registerApp } from '../desktop.js';
 
 // Inline fallback portfolio. The real source of truth is data/portfolio.json,
@@ -166,6 +166,95 @@ function escapeHtml(s) {
   ));
 }
 
+// ---- deep-linking ---------------------------------------------------------
+// A shareable link is (origin + pathname) + "?file=<slug>". The desktop
+// deep-link router opens app id "files" when ?file= is present; this app then
+// self-loads and scrolls to / highlights the matching file. We deliberately
+// drop any existing query string so the link is clean and stable.
+function shareUrlFor(slug) {
+  return location.origin + location.pathname + '?file=' + encodeURIComponent(slug);
+}
+
+// Read ?file=<slug> from the current URL, or null if absent. We tolerate the
+// slug also living in the hash (e.g. #file=slug) for resilience, but ?file is
+// the canonical form the router and shareUrlFor() use.
+function slugFromLocation() {
+  try {
+    const q = new URLSearchParams(window.location.search).get('file');
+    if (q) return q;
+  } catch (_e) { /* malformed search */ }
+  const h = window.location.hash || '';
+  const m = /(?:^|[?&#])file=([^&]+)/.exec(h);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Copy text to the clipboard with an execCommand fallback for older / insecure
+// contexts (file://, http). Resolves true on success.
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (_e) { /* fall through to legacy path */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (_e) { return false; }
+}
+
+// Inject our scoped styles once (we do not own the CSS file). Covers the copy
+// button, the flash toast, and the deep-link highlight pulse. All hooks reuse
+// existing theme variables so it matches the win98 / acid palette.
+let stylesInjected = false;
+function injectStyles() {
+  if (stylesInjected) return;
+  stylesInjected = true;
+  const el = document.createElement('style');
+  el.id = 'fx-deeplink-styles';
+  el.textContent = `
+    .app-files .win__body { position: relative; }
+    .app-files .fx-viewer__actions { display: flex; gap: 6px; margin: 0 0 12px; }
+    .app-files .fx-copylink {
+      font-family: var(--font-sys); font-size: var(--fs-sm); line-height: 1;
+      padding: 3px 10px; cursor: pointer; color: var(--ink); background: var(--bg);
+      border: 2px solid; white-space: nowrap;
+      border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+    }
+    .app-files .fx-copylink:active {
+      border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+    }
+    .app-files .fx-copylink.is-ok { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+    .app-files .fx-toast {
+      position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%) translateY(8px);
+      z-index: 5; padding: 4px 12px; pointer-events: none; opacity: 0;
+      font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--bg);
+      background: var(--accent); border: 1px solid var(--ink);
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+    .app-files .fx-toast.is-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    @keyframes fx-deeplink-pulse {
+      0%, 100% { box-shadow: inset 0 0 0 1px var(--accent); }
+      50% { box-shadow: inset 0 0 0 2px var(--accent), 0 0 8px var(--accent); }
+    }
+    .app-files .fx-file.is-deeplinked { animation: fx-deeplink-pulse 0.5s ease-in-out 3; }
+    @media (prefers-reduced-motion: reduce) {
+      .app-files .fx-file.is-deeplinked { animation: none; box-shadow: inset 0 0 0 2px var(--accent); }
+      .app-files .fx-toast { transition: opacity 140ms ease; transform: translateX(-50%); }
+    }
+  `;
+  document.head.appendChild(el);
+}
+
 // Real media renders inline; everything else gets the tinted placeholder cover.
 function coverMarkup(file) {
   if (file.kind === 'video' && file.media) {
@@ -207,9 +296,28 @@ const isTapToOpen = () => (
 );
 const canHoverScrub = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+// Briefly show a confirmation toast inside a window content element. The toast
+// is positioned over the content (the window body is the offset parent).
+function flashToast(el, msg) {
+  let toast = el.querySelector('.fx-toast');
+  if (!toast) {
+    toast = document.createElement('span');
+    toast.className = 'fx-toast';
+    toast.setAttribute('aria-live', 'polite');
+    el.appendChild(toast);
+  }
+  toast.textContent = msg;
+  // force reflow so re-triggering the transition works on a rapid second tap
+  void toast.offsetWidth;
+  toast.classList.add('is-show');
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.remove('is-show'), 1500);
+}
+
 function openViewer(slug) {
   const file = findFile(slug);
   if (!file) return;
+  injectStyles();
   const hasMedia = !!file.media;
   wm.open({
     id: `files-view-${slug}`,
@@ -226,10 +334,30 @@ function openViewer(slug) {
             <span class="fx-tag">${escapeHtml(file.type)}</span>
             <span class="fx-tag">${escapeHtml(file.name)}</span>
           </p>
+          <p class="fx-viewer__actions">
+            <button class="fx-copylink" type="button"
+                    title="copy a shareable link to this file"
+                    aria-label="copy link to this file">🔗 copy link</button>
+          </p>
           <p class="fx-viewer__blurb">${escapeHtml(file.blurb)}</p>
           ${hasMedia ? '' : '<p class="fx-viewer__note">placeholder // real cut drops soon</p>'}
         </div>
       `;
+      const copyBtn = el.querySelector('.fx-copylink');
+      if (copyBtn) {
+        onTap(copyBtn, async () => {
+          const url = shareUrlFor(slug);
+          const ok = await copyToClipboard(url);
+          copyBtn.classList.add('is-ok');
+          copyBtn.textContent = ok ? '✓ copied' : '🔗 ' + url;
+          flashToast(el, ok ? 'link copied' : 'copy failed - link shown');
+          clearTimeout(copyBtn._resetTimer);
+          copyBtn._resetTimer = setTimeout(() => {
+            copyBtn.classList.remove('is-ok');
+            copyBtn.textContent = '🔗 copy link';
+          }, 1600);
+        });
+      }
       if (file.kind === 'video' && isTapToOpen()) {
         const vid = el.querySelector('video.fx-media');
         if (vid) vid.play().catch(() => { /* fall back to the play button */ });
@@ -275,6 +403,7 @@ function attachScrub(scrubEl) {
 
 // ---- main render ----------------------------------------------------------
 function render(contentEl, handle) {
+  injectStyles();
   let active = FOLDERS[0] ? FOLDERS[0].id : 'projects';
   let query = '';
   let searchAll = false;
@@ -459,7 +588,33 @@ function render(contentEl, handle) {
     if (!li) return;
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openViewer(li.dataset.slug); }
     else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteFile(li.dataset.slug); }
+    // c (no modifiers) copies a shareable deep link to the focused file
+    else if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault(); copyLinkFor(li.dataset.slug);
+    }
   });
+
+  // Right-clicking a file copies its shareable deep link (a lightweight context
+  // action that does not need a full menu). We stop here so the desktop's own
+  // context menu does not also fire.
+  grid.addEventListener('contextmenu', (e) => {
+    const li = e.target.closest('.fx-file');
+    if (!li) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setSelected(li.dataset.slug);
+    copyLinkFor(li.dataset.slug);
+  });
+
+  // Build + copy a deep link for a slug, flashing a confirmation over the FILES
+  // window. Used by the keyboard shortcut and the right-click action.
+  async function copyLinkFor(slug) {
+    injectStyles();
+    const url = shareUrlFor(slug);
+    const ok = await copyToClipboard(url);
+    flashToast(contentEl, ok ? 'link copied' : 'copy failed - see console');
+    if (!ok) { try { console.log('cozyfiles file link:', url); } catch (_e) {} }
+  }
 
   // ---- drag-to-reorder (HTML5 DnD, fine pointer / desktop) ----
   let dragSlug = null;
@@ -547,8 +702,44 @@ function render(contentEl, handle) {
     };
   }
 
+  // ---- deep-link self-load --------------------------------------------------
+  // Given a slug, switch to its folder, scroll the grid to it, select +
+  // highlight it, and open its viewer. Returns true if the slug was found.
+  // Invalid / recycled-without-folder slugs are ignored (normal FILES view).
+  function focusFile(slug) {
+    if (!slug) return false;
+    const folderId = folderOfFile(slug);
+    if (!folderId) return false; // unknown slug -> leave the default view alone
+
+    // selecting the folder also marks progress + repaints the grid. If the file
+    // is hidden and not yet unlocked it will not appear; bail in that case so we
+    // do not leave a dangling selection.
+    if (folderId !== active) selectFolder(folderId);
+    else markFolderOpened(folderId);
+
+    const li = grid.querySelector(`.fx-file[data-slug="${CSS.escape(slug)}"]`);
+    if (!li) return false; // present in data but not currently visible (locked)
+
+    setSelected(slug);
+    try { li.scrollIntoView({ block: 'nearest', behavior: 'auto' }); } catch (_e) {}
+    li.classList.add('is-deeplinked');
+    setTimeout(() => li.classList.remove('is-deeplinked'), 2000);
+    openViewer(slug);
+    return true;
+  }
+
   paintTree();
   selectFolder(active);
+
+  // Honor a ?file=<slug> deep link on this render. The desktop router already
+  // opened FILES because ?file= was present; we only self-load the file. We try
+  // again on the post-JSON re-render only if the first attempt did not find the
+  // file (the live portfolio may carry slugs the inline fallback lacks); once it
+  // succeeds we latch so we never re-open a viewer the user has since closed.
+  if (!handle._filesDeepLinked) {
+    const slug = slugFromLocation();
+    if (slug && focusFile(slug)) handle._filesDeepLinked = true;
+  }
 }
 
 registerApp({
