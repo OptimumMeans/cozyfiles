@@ -1,0 +1,215 @@
+/* app-radio styles - cozyfiles RADIO, a generative ambient stream.
+   Namespaced under .app-radio. A small tabletop-radio panel: a dark "screen"
+   with a live visualizer + now-playing readout, then transport + volume on a
+   win98-ish chrome face. */
+
+.app-radio .radio {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+  padding: 14px;
+  background: var(--chrome);
+  color: var(--chrome-ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+}
+
+/* ---- the dark screen (visualizer + now-playing) ---- */
+.app-radio .radio__screen {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 110px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #1d1d1d 0%, #0d0d0d 70%, #070707 100%);
+  border: 2px solid var(--bevel-dark);
+  box-shadow:
+    inset 1px 1px 0 #000,
+    inset -1px -1px 0 #2a2a2a;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.app-radio .radio__viz {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.app-radio .radio__nowplaying {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: linear-gradient(0deg, rgba(7, 7, 7, 0.85) 0%, rgba(7, 7, 7, 0) 100%);
+}
+
+.app-radio .radio__np-label {
+  font-family: var(--font-sys);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.app-radio .radio__np-mood {
+  font-family: var(--font-sys);
+  font-size: calc(var(--fs-sys) + 2px);
+  line-height: 1.05;
+  color: #e6e6e6;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 6px rgba(220, 220, 220, 0.25);
+}
+
+.app-radio .radio__np-sub {
+  font-size: var(--fs-sm);
+  color: var(--ink-dim);
+}
+
+/* ON AIR lamp, top-right of the screen */
+.app-radio .radio__onair {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  font-family: var(--font-sys);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.16em;
+  padding: 2px 7px;
+  border: 1px solid #444;
+  border-radius: 2px;
+  color: #6a6a6a;
+  background: rgba(0, 0, 0, 0.4);
+  transition: color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.app-radio .radio__onair.is-live {
+  color: #fff;
+  border-color: #d6d6d6;
+  box-shadow: 0 0 8px rgba(230, 230, 230, 0.5);
+  animation: radio-onair 2.2s ease-in-out infinite;
+}
+
+/* ---- transport row ---- */
+.app-radio .radio__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.app-radio .radio__play {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  min-width: 96px;
+  cursor: pointer;
+  font-family: var(--font-sys);
+  font-size: calc(var(--fs-sys) - 2px);
+  letter-spacing: 0.06em;
+  color: var(--chrome-ink);
+  background: var(--bevel-light);
+  border: 2px solid;
+  border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+}
+.app-radio .radio__play:active {
+  border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.app-radio .radio__play:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.app-radio .radio__play.is-playing {
+  background: #2a2a2a;
+  color: var(--ink);
+  border-color: #555 #000 #000 #555;
+}
+.app-radio .radio__play[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.app-radio .radio__play-glyph {
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+/* volume slider */
+.app-radio .radio__vol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+.app-radio .radio__vol-label {
+  font-family: var(--font-sys);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bevel-dark);
+}
+.app-radio .radio__vol-slider {
+  flex: 1 1 auto;
+  width: 100%;
+  accent-color: #2a2a2a;
+  cursor: pointer;
+}
+
+/* ---- auto-start opt-in ---- */
+.app-radio .radio__auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  color: var(--chrome-ink);
+  cursor: pointer;
+  user-select: none;
+}
+.app-radio .radio__auto-box {
+  width: 14px;
+  height: 14px;
+  accent-color: #2a2a2a;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.app-radio .radio__auto-text { line-height: 1.3; }
+
+/* ---- footer note ---- */
+.app-radio .radio__note {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--bevel-dark);
+  line-height: 1.4;
+}
+
+@keyframes radio-onair {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* reduced motion: no pulsing lamp (visualizer already falls back to a still
+   resting line via JS) */
+@media (prefers-reduced-motion: reduce) {
+  .app-radio .radio__onair.is-live { animation: none; }
+}
+
+/* mobile near-fullscreen sheet: roomier touch targets, comfortable spacing */
+@media (max-width: 640px) {
+  .app-radio .radio { padding: 16px; gap: 14px; }
+  .app-radio .radio__play {
+    min-width: 110px;
+    padding: 12px 18px;
+  }
+  .app-radio .radio__vol-slider { height: 24px; }
+  .app-radio .radio__auto-box { width: 18px; height: 18px; }
+  .app-radio .radio__np-mood { font-size: var(--fs-sys); }
+}
