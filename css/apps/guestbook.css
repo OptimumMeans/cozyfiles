@@ -8,6 +8,12 @@
   font-size: var(--fs-body);
   color: var(--ink);
 }
+.app-guestbook .gb__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
 .app-guestbook .gb__title {
   margin: 0;
   font-family: var(--font-sys);
@@ -15,6 +21,42 @@
   color: var(--accent);
   letter-spacing: 0.04em;
 }
+
+/* tiny "synced" vs "local" badge.
+   local = neutral (per-device default), synced = accent (shared backend ok),
+   offline = warm (endpoint configured but unreachable). */
+.app-guestbook .gb__sync {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  white-space: nowrap;
+  flex: none;
+  cursor: default;
+}
+.app-guestbook .gb__sync::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--ink-dim);
+  vertical-align: middle;
+}
+.app-guestbook .gb__sync[data-mode="synced"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.app-guestbook .gb__sync[data-mode="synced"]::before { background: var(--accent); }
+.app-guestbook .gb__sync[data-mode="offline"] {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+}
+.app-guestbook .gb__sync[data-mode="offline"]::before { background: var(--accent-2); }
 .app-guestbook .gb__list {
   flex: 1;
   overflow: auto;

@@ -1,6 +1,7 @@
 // guestbook.js - hidden easter egg: sign the wall.
 // Pluggable persistence: localStorage by default (per-device), or a shared
-// remote store when REMOTE_ENDPOINT is configured.
+// remote store when an endpoint is configured (DEFAULT_ENDPOINT or the
+// localStorage 'cozyfiles.guestbook.endpoint' override).
 import { wm } from '../../window-manager.js';
 import { registerApp } from '../../desktop.js';
 
@@ -8,19 +9,29 @@ import { registerApp } from '../../desktop.js';
 // REMOTE BACKEND CONFIG
 // ---------------------------------------------------------------------------
 // The site is a STATIC site (GitHub Pages) so there is no backend by default.
-// Leave this empty to use localStorage (entries are per-device only).
+// localStorage is the ZERO-CONFIG default: entries are per-device only and
+// nothing has to be deployed.
 //
-// To share entries across all visitors, point this at any tiny JSON store
-// (a Cloudflare Worker + KV, a JSONBin-style service, a Val Town val, etc).
+// To share entries across all visitors, point the guestbook at any tiny JSON
+// store (the bundled Cloudflare Worker in workers/guestbook.js, a JSONBin-style
+// service, a Val Town val, etc). Two ways to set the endpoint, override first:
 //
-// REMOTE CONTRACT (must satisfy both):
-//   GET  <REMOTE_ENDPOINT>
+//   1. localStorage key 'cozyfiles.guestbook.endpoint' (no redeploy needed):
+//        localStorage.setItem('cozyfiles.guestbook.endpoint',
+//          'https://cozyfiles-guestbook.<you>.workers.dev')
+//      Clear it with localStorage.removeItem(...) to drop back to local-only.
+//   2. the DEFAULT_ENDPOINT constant below (baked into the deploy for everyone).
+//
+// See docs/GUESTBOOK-BACKEND.md for the full deploy walkthrough.
+//
+// REMOTE CONTRACT (the active endpoint must satisfy both):
+//   GET  <endpoint>
 //     -> 200, JSON body that is EITHER an array of entries
 //        OR an object like { entries: [...] }.
 //        Each entry: { name: string, msg: string, at: string, id?: string }
 //        (extra fields are ignored; missing id is fine, one is derived).
 //
-//   POST <REMOTE_ENDPOINT>
+//   POST <endpoint>
 //     Content-Type: application/json
 //     body: a single entry { name, msg, at, id }
 //     -> 200/201 on success. Response body is ignored (the UI already has the
@@ -28,11 +39,12 @@ import { registerApp } from '../../desktop.js';
 //
 // The server is responsible for its own length caps / abuse filtering; the
 // client also caps + escapes, but never trust the client.
-const REMOTE_ENDPOINT = '';
+const DEFAULT_ENDPOINT = '';
 
 // ---------------------------------------------------------------------------
-const KEY = 'cozyfiles.guestbook';            // local entry cache
-const RL_KEY = 'cozyfiles.guestbook.lastpost'; // rate-limit timestamp
+const KEY = 'cozyfiles.guestbook';             // local entry cache
+const ENDPOINT_KEY = 'cozyfiles.guestbook.endpoint'; // per-device endpoint override
+const RL_KEY = 'cozyfiles.guestbook.lastpost';  // rate-limit timestamp
 const NAME_MAX = 40;
 const MSG_MAX = 140;
 const MAX_ENTRIES = 500;        // keep the local cache from growing unbounded
@@ -123,9 +135,24 @@ const localStore = {
   },
 };
 
+// Resolve the active endpoint at call-time so a localStorage override set
+// during the session (or cleared) takes effect without a reload. The override
+// wins over the baked-in constant; an empty/blank value means local-only.
+function resolveEndpoint() {
+  let override = '';
+  try { override = localStorage.getItem(ENDPOINT_KEY) || ''; } catch { /* blocked */ }
+  const raw = (override.trim() || DEFAULT_ENDPOINT || '').trim();
+  // only accept http(s) endpoints; ignore anything else (avoids odd schemes)
+  return /^https?:\/\//i.test(raw) ? raw : '';
+}
+
+// True when a shared backend is configured (constant or override).
+function remoteOn() { return resolveEndpoint() !== ''; }
+
 const remoteStore = {
   async get() {
-    const res = await fetch(REMOTE_ENDPOINT, {
+    const endpoint = resolveEndpoint();
+    const res = await fetch(endpoint, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
     });
@@ -135,7 +162,8 @@ const remoteStore = {
     return arr;
   },
   async add(entry) {
-    const res = await fetch(REMOTE_ENDPOINT, {
+    const endpoint = resolveEndpoint();
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry),
@@ -144,33 +172,37 @@ const remoteStore = {
   },
 };
 
-const REMOTE_ON = typeof REMOTE_ENDPOINT === 'string' && REMOTE_ENDPOINT.trim() !== '';
-
 // Load entries for display. With remote on, merge remote + local cache so a
 // device's own optimistic writes survive a slow/failed round-trip; on remote
-// failure we degrade to the local cache. Always returns a clean, deduped list.
+// failure we degrade to the local cache. Resolves to { entries, synced } so the
+// UI can show a "synced" vs "local" indicator honestly.
 async function loadEntries() {
   const local = await localStore.get();
-  if (!REMOTE_ON) return merge(local, []);
+  if (!remoteOn()) return { entries: merge(local, []), synced: false };
   try {
     const remote = await remoteStore.get();
     const combined = merge(remote, local);
     localStore.write(combined); // refresh cache with shared entries
-    return combined;
+    return { entries: combined, synced: true };
   } catch {
-    return merge(local, []); // offline / endpoint down: show what we have
+    // offline / endpoint down: show what we have, flagged as not synced
+    return { entries: merge(local, []), synced: false };
   }
 }
 
 // Write through to the active backend. Always updates the local cache so the
-// optimistic entry is durable even if the remote write fails.
+// optimistic entry is durable even if the remote write fails. Resolves to
+// { entries, synced }: synced is true only when the remote write succeeded.
 async function addEntry(entry, currentList) {
   const next = await localStore.add(entry, currentList);
-  if (REMOTE_ON) {
-    try { await remoteStore.add(entry); }
-    catch { /* keep optimistic local copy; it will sync on a later load */ }
+  if (!remoteOn()) return { entries: next, synced: false };
+  try {
+    await remoteStore.add(entry);
+    return { entries: next, synced: true };
+  } catch {
+    // keep optimistic local copy; it will sync on a later load
+    return { entries: next, synced: false };
   }
-  return next;
 }
 
 // Simple per-device rate limit. Returns true if a post is allowed right now.
@@ -194,7 +226,10 @@ registerApp({
     render: (el) => {
       el.innerHTML = `
         <div class="gb">
-          <h2 class="gb__title">sign the wall</h2>
+          <div class="gb__head">
+            <h2 class="gb__title">sign the wall</h2>
+            <span class="gb__sync" data-mode="local" title="entries are stored on this device only">local</span>
+          </div>
           <ul class="gb__list" aria-live="polite"></ul>
           <form class="gb__form" novalidate>
             <input class="gb__name" type="text" maxlength="${NAME_MAX}" placeholder="name" aria-label="your name" autocomplete="off" required>
@@ -215,11 +250,31 @@ registerApp({
       const hpI = el.querySelector('.gb__hp');
       const note = el.querySelector('.gb__note');
       const signBtn = el.querySelector('.gb__sign');
+      const sync = el.querySelector('.gb__sync');
 
       let entries = [];
       let alive = true; // guards async callbacks after the window closes
 
       const setNote = (txt) => { note.textContent = txt || ''; };
+
+      // Tiny "synced" vs "local" badge. `synced` true means a shared backend
+      // round-trip succeeded; otherwise we are on the local-only cache (either
+      // no endpoint configured, or the endpoint is unreachable right now).
+      const setSync = (synced) => {
+        if (synced) {
+          sync.dataset.mode = 'synced';
+          sync.textContent = 'synced';
+          sync.title = 'shared with all visitors via the configured backend';
+        } else if (remoteOn()) {
+          sync.dataset.mode = 'offline';
+          sync.textContent = 'local';
+          sync.title = 'backend unreachable - saved on this device, will sync later';
+        } else {
+          sync.dataset.mode = 'local';
+          sync.textContent = 'local';
+          sync.title = 'entries are stored on this device only';
+        }
+      };
 
       const renderList = () => {
         list.innerHTML = '';
@@ -245,11 +300,13 @@ registerApp({
       // initial render from cache, then refresh from the active backend
       entries = merge(localStore.read() ?? SEED.slice(), []);
       renderList();
-      if (REMOTE_ON) setNote('loading...');
-      loadEntries().then((loaded) => {
+      setSync(false); // optimistic local view until the first load resolves
+      if (remoteOn()) setNote('loading...');
+      loadEntries().then(({ entries: loaded, synced }) => {
         if (!alive) return;
         entries = loaded;
         renderList();
+        setSync(synced);
         setNote('');
       });
 
@@ -281,16 +338,18 @@ registerApp({
         form.reset();
         nameI.focus();
         signBtn.disabled = true;
-        setNote(REMOTE_ON ? 'sending...' : '');
+        setNote(remoteOn() ? 'sending...' : '');
 
         try {
-          const next = await addEntry(entry, entries);
+          const { entries: next, synced } = await addEntry(entry, entries);
           if (!alive) return;
           entries = next;
           renderList();
-          setNote('');
+          setSync(synced);
+          setNote(remoteOn() && !synced ? 'saved locally' : '');
         } catch {
           if (!alive) return;
+          setSync(false);
           setNote('saved locally');
         } finally {
           if (alive) signBtn.disabled = false;
